@@ -36,7 +36,7 @@ func CreateMeal(response http.ResponseWriter, request *http.Request) {
 
 func GetMeals(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
-	collection := client.Database("go_meals").Collection("meals")
+	collection := client.Database("g_meals").Collection("meals")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
@@ -45,10 +45,7 @@ func GetMeals(response http.ResponseWriter, request *http.Request) {
 	cursor, err := collection.Find(ctx, bson.M{})
 
 	if err != nil {
-		response.WriteHeader(http.StatusNotFound)
-		response.Write([]byte("ERROR: no meals were found!"))
 		log.Fatal(err)
-
 	}
 	defer cursor.Close(ctx)
 
@@ -65,8 +62,16 @@ func GetMeals(response http.ResponseWriter, request *http.Request) {
 		response.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	json.NewEncoder(response).Encode(meals)
+	if len(meals) > 0 {
+		json.NewEncoder(response).Encode(meals)
+	} else {
+		//if there are no meals create a message Struct to marshal back
+		type ErrorMessage struct {
+			Error string
+		}
+		response_message := ErrorMessage{"Error: No meals have been created"}
+		json.NewEncoder(response).Encode(response_message)
+	}
 }
 
 
