@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-  "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var client *mongo.Client
@@ -38,10 +38,10 @@ func GetMeals(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
 	collection := client.Database("meal_plan").Collection("meals")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	fmt.Println(ctx)
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
-		response.Write("there was an error getting the meals")
 		return
 	}
 	//defer is like finally in JS.
@@ -55,7 +55,6 @@ func GetMeals(response http.ResponseWriter, request *http.Request) {
 	}
 	if err := cursor.Err(); err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
-		response.Write("there was an error getting the meals")
 		return
 	}
 	json.NewEncoder(response).Encode(meals)
