@@ -36,16 +36,23 @@ func CreateMeal(response http.ResponseWriter, request *http.Request) {
 
 func GetMeals(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
-	collection := client.Database("meal_plan").Collection("meals")
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	fmt.Println(ctx)
+	collection := client.Database("go_meals").Collection("meals")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	defer cancel()
+
 	cursor, err := collection.Find(ctx, bson.M{})
+
 	if err != nil {
-		response.WriteHeader(http.StatusInternalServerError)
-		return
+		response.WriteHeader(http.StatusNotFound)
+		response.Write([]byte("ERROR: no meals were found!"))
+		log.Fatal(err)
+
 	}
-	//defer is like finally in JS.
 	defer cursor.Close(ctx)
+
+
 	//create a list of meals of struc Meal
 	var meals []Meal
 	for cursor.Next(ctx) {
@@ -53,17 +60,23 @@ func GetMeals(response http.ResponseWriter, request *http.Request) {
 		cursor.Decode(&meal)
 		meals = append(meals, meal)
 	}
+
 	if err := cursor.Err(); err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	json.NewEncoder(response).Encode(meals)
 }
 
 
 func main() {
 	fmt.Println("Server started on port 5000")
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	//try to do the rest of everything and then cancel
+	defer cancel()
+
 	client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 	router := mux.NewRouter()
 	router.HandleFunc("/meal", CreateMeal).Methods("POST")
