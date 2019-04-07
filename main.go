@@ -34,7 +34,7 @@ func CreateMeal(response http.ResponseWriter, request *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	fmt.Println("meal: ", meal, reflect.TypeOf(meal))
-	result, err := collection.InsertOne(ctx, meal)
+	_, err := collection.InsertOne(ctx, meal)
 
 	if err != nil {
 		type ErrorMessage struct {
@@ -43,18 +43,9 @@ func CreateMeal(response http.ResponseWriter, request *http.Request) {
 		response_message := ErrorMessage{"ERROR: there was an error creating your meal"}
 		json.NewEncoder(response).Encode(response_message)
 	} else {
-		fmt.Println(result, reflect.TypeOf(result))
-		// filter := bson.D{"_id", result}
-		single_result := collection.FindOne(ctx, result)
-		fmt.Println("single_result: ", single_result, reflect.TypeOf(single_result))
-
-		var new_meal Meal
-		single_result.Decode(&new_meal)
-		fmt.Println("new_meal: ", new_meal, reflect.TypeOf(new_meal))
-		json.NewEncoder(response).Encode(new_meal)
-		}
-
-
+		//if there isnt an error, meal was inserted, so return the meal
+		json.NewEncoder(response).Encode(meal)
+	}
 }
 
 func GetMeals(response http.ResponseWriter, request *http.Request) {
@@ -82,7 +73,9 @@ func GetMeals(response http.ResponseWriter, request *http.Request) {
 	}
 
 	if len(meals) > 0 {
+		fmt.Println(meals, reflect.TypeOf(meals))
 		json.NewEncoder(response).Encode(meals)
+
 	} else {
 		//if there are no meals create a message Struct to send back
 		type ErrorMessage struct {
