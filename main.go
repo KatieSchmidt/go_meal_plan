@@ -20,29 +20,35 @@ type Meal struct {
 	Mealname  string `json:"mealname" bson:"mealname"`
 }
 
+type ErrorMessage struct {
+	Error string
+}
+
 func CreateMeal(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 	response.Header().Set("content-type", "application/x-www-form-urlencoded")
-
 	//create Meal using the form data, save to a collection,
-	var meal Meal
-	meal.Username = request.FormValue("username")
-	meal.Mealname = request.FormValue("mealname")
-	collection := client.Database("go_meals").Collection("meals")
-	//cancel will cancel ctx as soon as timeout expires
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_, err := collection.InsertOne(ctx, meal)
 
-	if err != nil {
-		type ErrorMessage struct {
-			Error string
-		}
-		response_message := ErrorMessage{"ERROR: there was an error creating your meal"}
-		json.NewEncoder(response).Encode(response_message)
+	if len(request.FormValue("username")) == 0 || len(request.FormValue("mealname")) == 0{
+		meal_error := ErrorMessage{"One of your form fields was empty"}
+		json.NewEncoder(response).Encode(meal_error)
 	} else {
-		//if there isnt an error, meal was inserted, so return the meal
-		json.NewEncoder(response).Encode(meal)
+		var meal Meal
+		meal.Username = request.FormValue("username")
+		meal.Mealname = request.FormValue("mealname")
+		collection := client.Database("go_meals").Collection("meals")
+		//cancel will cancel ctx as soon as timeout expires
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, err := collection.InsertOne(ctx, meal)
+
+		if err != nil {
+			response_message := ErrorMessage{"ERROR: there was an error creating your meal"}
+			json.NewEncoder(response).Encode(response_message)
+		} else {
+			//if there isnt an error, meal was inserted, so return the meal
+			json.NewEncoder(response).Encode(meal)
+		}
 	}
 }
 
@@ -75,9 +81,6 @@ func GetMeals(response http.ResponseWriter, request *http.Request) {
 
 	} else {
 		//if there are no meals create a message Struct to send back
-		type ErrorMessage struct {
-			Error string
-		}
 		response_message := ErrorMessage{"Error: No meals have been created"}
 		json.NewEncoder(response).Encode(response_message)
 	}
