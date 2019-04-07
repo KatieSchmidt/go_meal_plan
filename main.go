@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"reflect"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -33,7 +32,6 @@ func CreateMeal(response http.ResponseWriter, request *http.Request) {
 	//cancel will cancel ctx as soon as timeout expires
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	fmt.Println("meal: ", meal, reflect.TypeOf(meal))
 	_, err := collection.InsertOne(ctx, meal)
 
 	if err != nil {
@@ -73,7 +71,6 @@ func GetMeals(response http.ResponseWriter, request *http.Request) {
 	}
 
 	if len(meals) > 0 {
-		fmt.Println(meals, reflect.TypeOf(meals))
 		json.NewEncoder(response).Encode(meals)
 
 	} else {
