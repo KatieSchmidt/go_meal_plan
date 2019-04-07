@@ -10,6 +10,7 @@ import (
 	// "reflect"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -65,18 +66,13 @@ func CreateMeal(response http.ResponseWriter, request *http.Request) {
 func GetMeals(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
 	collection := client.Database("go_meals").Collection("meals")
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
 	defer cancel()
-
 	cursor, err := collection.Find(ctx, bson.M{})
-
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer cursor.Close(ctx)
-
 
 	//create a list of meals of struc Meal
 	var meals []Meal
@@ -96,6 +92,25 @@ func GetMeals(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func GetMealById(response http.ResponseWriter, request *http.Request) {
+	params := mux.Vars(request)
+	collection := client.Database("go_meals").Collection("meals")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	//make meal struc and get/make objectID, find by that id
+	var resulting_meal Meal
+	id, _ := primitive.ObjectIDFromHex(params["id"])
+	filter := bson.D{{"_id", id }}
+	error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
+	//if the meal wasnt found, create it else send an error message
+	if error_msg != nil {
+		response_message := ErrorMessage{"meal not found"}
+		json.NewEncoder(response).Encode(response_message)
+	} else {
+		json.NewEncoder(response).Encode(resulting_meal)
+	}
+}
+
 
 func main() {
 	fmt.Println("Server started on port 5000")
@@ -108,5 +123,6 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/meal", CreateMeal).Methods("POST")
 	router.HandleFunc("/meals", GetMeals).Methods("GET")
+	router.HandleFunc("/meals/{id}", GetMealById).Methods("GET")
 	log.Fatal(http.ListenAndServe(":5000", router))
 }
