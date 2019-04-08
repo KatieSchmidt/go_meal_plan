@@ -184,11 +184,53 @@ func DeleteMealById(response http.ResponseWriter, request *http.Request){
 		} else {
 			json.NewEncoder(response).Encode(result)
 		}
-
 }
 
 func DeleteIngredientFromMeal(response http.ResponseWriter, request *http.Request){
-	fmt.Println("This will delete an ingredient from meal by meal id")
+	params := mux.Vars(request)
+	collection := client.Database("go_meals").Collection("meals")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	//make meal struc and get/make objectID, find by that id
+	var resulting_meal Meal
+	id, _ := primitive.ObjectIDFromHex(params["id"])
+	ing_id, _ := primitive.ObjectIDFromHex(params["ingredient_id"])
+	filter := bson.D{{"_id", id }}
+	error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
+	//find meal
+	//ingredients is a slice. find index of ingredient to know where to remove
+
+	if error_msg != nil {
+		response_message := ErrorMessage{"meal not found"}
+		json.NewEncoder(response).Encode(response_message)
+	} else {
+		ingredients := resulting_meal.Ingredients
+		index := 0
+		running := true
+		var calories_to_remove int64 = 0
+		for i := 0; i < len(ingredients) && running == true; i++ {
+			if ingredients[i].ID == ing_id {
+				index = i
+				calories_to_remove = ingredients[i].Calories
+				running = false
+			}
+		}
+		new_ing_slice := append(ingredients[:index], ingredients[index+1:]...)
+		fmt.Println(new_ing_slice)
+
+		resulting_meal.Ingredients = new_ing_slice
+		resulting_meal.TotalCalories = resulting_meal.TotalCalories - calories_to_remove
+
+		var updated_meal Meal
+		error_msg_2 := collection.FindOneAndReplace(ctx, filter, resulting_meal).Decode(&updated_meal)
+
+		if error_msg_2 != nil  {
+			response_message := ErrorMessage{"Unable to remove ingredient"}
+			json.NewEncoder(response).Encode(response_message)
+		} else {
+			json.NewEncoder(response).Encode(resulting_meal)
+		}
+	}
 }
 
 func main() {
@@ -205,6 +247,6 @@ func main() {
 	router.HandleFunc("/meals/{id}", GetMealById).Methods("GET")
 	router.HandleFunc("/meals/{id}/ingredients", AddIngredientToMeal).Methods("PUT")
 	router.HandleFunc("/meals/{id}", DeleteMealById).Methods("DELETE")
-	router.HandleFunc("/meals/{id}/ingredients/{ingredient}", DeleteIngredientFromMeal).Methods("DELETE")
+	router.HandleFunc("/meals/{id}/ingredients/{ingredient_id}", DeleteIngredientFromMeal).Methods("PUT")
 	log.Fatal(http.ListenAndServe(":5000", router))
 }
