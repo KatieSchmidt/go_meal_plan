@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 	"time"
-	// "strconv"
+	"strconv"
 	// "reflect"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
@@ -124,8 +124,49 @@ func GetMealById(response http.ResponseWriter, request *http.Request) {
 }
 
 func AddIngredientToMeal(response http.ResponseWriter, request *http.Request) {
-	fmt.Println("This will Add an Ingredient to a meal by id")
+	request.ParseForm()
+	response.Header().Set("content-type", "application/x-www-form-urlencoded")
+
+	params := mux.Vars(request)
+	id, _ := primitive.ObjectIDFromHex(params["id"])
+	filter := bson.D{{"_id", id }}
+
+	var ingredient Ingredient
+	ingredient.Ingredient = request.FormValue("ingredient")
+	if cals, err := strconv.ParseInt(request.FormValue("calories"), 10, 32); err == nil {
+		ingredient.Calories = cals
+	}
+	ingredient.MeasureUnit = request.FormValue("measureunit")
+	if units, err := strconv.ParseInt(request.FormValue("measureunitquantity"), 10, 32); err == nil {
+		ingredient.MeasureUnitQuantity = units
+	}
+
+	collection := client.Database("go_meals").Collection("meals")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var resulting_meal Meal
+	var updated_meal Meal
+	error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
+	if error_msg != nil {
+		response_message := ErrorMessage{"meal not found"}
+		json.NewEncoder(response).Encode(response_message)
+	} else {
+		resulting_meal.Ingredients = append(resulting_meal.Ingredients, ingredient)
+		fmt.Println(resulting_meal)
+		resulting_meal.TotalCalories = resulting_meal.TotalCalories + ingredient.Calories
+		error_msg_2 := collection.FindOneAndReplace(ctx, filter, resulting_meal).Decode(&updated_meal)
+
+		if error_msg_2 != nil  {
+			response_message := ErrorMessage{"Unable to add ingredient"}
+			fmt.Println(error_msg_2)
+			json.NewEncoder(response).Encode(response_message)
+		} else {
+			json.NewEncoder(response).Encode(resulting_meal)
+		}
+	}
 }
+
 
 func DeleteMealById(response http.ResponseWriter, request *http.Request){
 	fmt.Println("This will delete a meal by its id.")
