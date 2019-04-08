@@ -153,13 +153,11 @@ func AddIngredientToMeal(response http.ResponseWriter, request *http.Request) {
 		json.NewEncoder(response).Encode(response_message)
 	} else {
 		resulting_meal.Ingredients = append(resulting_meal.Ingredients, ingredient)
-		fmt.Println(resulting_meal)
 		resulting_meal.TotalCalories = resulting_meal.TotalCalories + ingredient.Calories
 		error_msg_2 := collection.FindOneAndReplace(ctx, filter, resulting_meal).Decode(&updated_meal)
 
 		if error_msg_2 != nil  {
 			response_message := ErrorMessage{"Unable to add ingredient"}
-			fmt.Println(error_msg_2)
 			json.NewEncoder(response).Encode(response_message)
 		} else {
 			json.NewEncoder(response).Encode(resulting_meal)
@@ -169,7 +167,22 @@ func AddIngredientToMeal(response http.ResponseWriter, request *http.Request) {
 
 
 func DeleteMealById(response http.ResponseWriter, request *http.Request){
-	fmt.Println("This will delete a meal by its id.")
+		params := mux.Vars(request)
+		collection := client.Database("go_meals").Collection("meals")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		//make objectID, find by that id
+		id, _ := primitive.ObjectIDFromHex(params["id"])
+		filter := bson.D{{"_id", id }}
+		result, error_msg := collection.DeleteOne(ctx, filter)
+		//if the meal wasnt found, create it else send an error message
+		if error_msg != nil {
+			response_message := ErrorMessage{"meal not found"}
+			json.NewEncoder(response).Encode(response_message)
+		} else {
+			json.NewEncoder(response).Encode(result)
+		}
+
 }
 
 func DeleteIngredientFromMeal(response http.ResponseWriter, request *http.Request){
