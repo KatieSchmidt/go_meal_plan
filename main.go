@@ -27,6 +27,7 @@ type Meal struct {
 }
 
 type Ingredient struct {
+	ID primitive.ObjectID `json:"ing_id" bson:"ing_id"`
 	Ingredient string `json:"ingredient" bson:"ingredient"`
 	Calories int64 `json:"calories" bson:"calories"`
 	MeasureUnitQuantity int64 `json:"measureunitquantity" bson:"measureunitquantity"`
@@ -132,6 +133,7 @@ func AddIngredientToMeal(response http.ResponseWriter, request *http.Request) {
 	filter := bson.D{{"_id", id }}
 
 	var ingredient Ingredient
+	ingredient.ID = primitive.NewObjectID()
 	ingredient.Ingredient = request.FormValue("ingredient")
 	if cals, err := strconv.ParseInt(request.FormValue("calories"), 10, 32); err == nil {
 		ingredient.Calories = cals
@@ -203,6 +205,6 @@ func main() {
 	router.HandleFunc("/meals/{id}", GetMealById).Methods("GET")
 	router.HandleFunc("/meals/{id}/ingredients", AddIngredientToMeal).Methods("PUT")
 	router.HandleFunc("/meals/{id}", DeleteMealById).Methods("DELETE")
-	router.HandleFunc("/meals/{meal_id}/ingredient/ingredient_id", DeleteIngredientFromMeal).Methods("DELETE")
+	router.HandleFunc("/meals/{id}/ingredients/{ingredient}", DeleteIngredientFromMeal).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":5000", router))
 }
