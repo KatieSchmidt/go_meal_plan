@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	// "strconv"
 	// "reflect"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
@@ -20,6 +21,16 @@ var client *mongo.Client
 type Meal struct {
 	Username string  `json:"username" bson:"username"`
 	Mealname  string `json:"mealname" bson:"mealname"`
+	TotalCalories int64 `json:"totalcalories" bson:"totalcalories"`
+	Ingredients []Ingredient `json:"ingredients" bson:"ingredients"`
+	DateAdded time.Time
+}
+
+type Ingredient struct {
+	Ingredient string `json:"ingredient" bson:"ingredient"`
+	Calories int64 `json:"calories" bson:"calories"`
+	MeasureUnitQuantity int64 `json:"measureunitquantity" bson:"measureunitquantity"`
+	MeasureUnit string `json:"measureunit" bson:"measureunit"`
 }
 
 type ErrorMessage struct {
@@ -42,6 +53,7 @@ func CreateMeal(response http.ResponseWriter, request *http.Request) {
 		var meal Meal
 		meal.Username = request.FormValue("username")
 		meal.Mealname = request.FormValue("mealname")
+		meal.DateAdded = time.Now()
 		filter := bson.D{{"username", meal.Username}, {"mealname", meal.Mealname}}
 		var resulting_meal Meal
 		error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
@@ -124,5 +136,6 @@ func main() {
 	router.HandleFunc("/meal", CreateMeal).Methods("POST")
 	router.HandleFunc("/meals", GetMeals).Methods("GET")
 	router.HandleFunc("/meals/{id}", GetMealById).Methods("GET")
+	router.HandleFunc("/meals/{id}/ingredients", AddIngredientToMeal).Methods("POST")
 	log.Fatal(http.ListenAndServe(":5000", router))
 }
