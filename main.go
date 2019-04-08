@@ -123,6 +123,17 @@ func GetMealById(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func AddIngredientToMeal(response http.ResponseWriter, request *http.Request) {
+	fmt.Println("This will Add an Ingredient to a meal by id")
+}
+
+func DeleteMealById(response http.ResponseWriter, request *http.Request){
+	fmt.Println("This will delete a meal by its id.")
+}
+
+func DeleteIngredientFromMeal(response http.ResponseWriter, request *http.Request){
+	fmt.Println("This will delete an ingredient from meal by meal id")
+}
 
 func main() {
 	fmt.Println("Server started on port 5000")
@@ -136,6 +147,8 @@ func main() {
 	router.HandleFunc("/meal", CreateMeal).Methods("POST")
 	router.HandleFunc("/meals", GetMeals).Methods("GET")
 	router.HandleFunc("/meals/{id}", GetMealById).Methods("GET")
-	router.HandleFunc("/meals/{id}/ingredients", AddIngredientToMeal).Methods("POST")
+	router.HandleFunc("/meals/{id}/ingredients", AddIngredientToMeal).Methods("PUT")
+	router.HandleFunc("/meals/{id}", DeleteMealById).Methods("DELETE")
+	router.HandleFunc("/meals/{meal_id}/ingredient/ingredient_id", DeleteIngredientFromMeal).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":5000", router))
 }
