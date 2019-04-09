@@ -8,42 +8,24 @@ import (
 	"net/http"
 	"time"
 	"strconv"
-	// "reflect"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/KatieSchmidt/meal_plan/models"
 )
 
 var client *mongo.Client
 
-type Meal struct {
-	Username string  `json:"username" bson:"username"`
-	Mealname  string `json:"mealname" bson:"mealname"`
-	TotalCalories int64 `json:"totalcalories" bson:"totalcalories"`
-	Ingredients []Ingredient `json:"ingredients" bson:"ingredients"`
-	DateAdded time.Time
-}
 
-type Ingredient struct {
-	ID primitive.ObjectID `json:"ing_id" bson:"ing_id"`
-	Ingredient string `json:"ingredient" bson:"ingredient"`
-	Calories int64 `json:"calories" bson:"calories"`
-	MeasureUnitQuantity int64 `json:"measureunitquantity" bson:"measureunitquantity"`
-	MeasureUnit string `json:"measureunit" bson:"measureunit"`
-}
-
-type ErrorMessage struct {
-	Error string
-}
 
 func CreateMeal(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 	response.Header().Set("content-type", "application/x-www-form-urlencoded")
 
 	if len(request.FormValue("username")) == 0 || len(request.FormValue("mealname")) == 0{
-		meal_error := ErrorMessage{"One of your form fields was empty"}
+		meal_error := models.ErrorMessage{"One of your form fields was empty"}
 		json.NewEncoder(response).Encode(meal_error)
 	} else {
 		// look for a meal that has same username and meal name
@@ -51,26 +33,26 @@ func CreateMeal(response http.ResponseWriter, request *http.Request) {
 		collection := client.Database("go_meals").Collection("meals")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		var meal Meal
+		var meal models.Meal
 		meal.Username = request.FormValue("username")
 		meal.Mealname = request.FormValue("mealname")
 		meal.DateAdded = time.Now()
 		filter := bson.D{{"username", meal.Username}, {"mealname", meal.Mealname}}
-		var resulting_meal Meal
+		var resulting_meal models.Meal
 		error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
 		//if the meal wasnt found, create it else send an error message
 		if error_msg != nil {
-			//create Meal using the form data, save to a collection,
+			//create models.Meal using the form data, save to a collection,
 			_, err := collection.InsertOne(ctx, meal)
 			if err != nil {
-				response_message := ErrorMessage{"ERROR: there was an error creating your meal"}
+				response_message := models.ErrorMessage{"ERROR: there was an error creating your meal"}
 				json.NewEncoder(response).Encode(response_message)
 			} else {
 				//if there isnt an error, meal was inserted, so return the meal
 				json.NewEncoder(response).Encode(meal)
 			}
 		} else {
-			response_message := ErrorMessage{"meal already exists"}
+			response_message := models.ErrorMessage{"meal already exists"}
 			json.NewEncoder(response).Encode(response_message)
 		}
 	}
@@ -87,10 +69,10 @@ func GetMeals(response http.ResponseWriter, request *http.Request) {
 	}
 	defer cursor.Close(ctx)
 
-	//create a list of meals of struc Meal
-	var meals []Meal
+	//create a list of meals of struc models.Meal
+	var meals []models.Meal
 	for cursor.Next(ctx) {
-		var meal Meal
+		var meal models.Meal
 		cursor.Decode(&meal)
 		meals = append(meals, meal)
 	}
@@ -100,7 +82,7 @@ func GetMeals(response http.ResponseWriter, request *http.Request) {
 
 	} else {
 		//if there are no meals create a message Struct to send back
-		response_message := ErrorMessage{"Error: No meals have been created"}
+		response_message := models.ErrorMessage{"Error: No meals have been created"}
 		json.NewEncoder(response).Encode(response_message)
 	}
 }
@@ -111,13 +93,13 @@ func GetMealById(response http.ResponseWriter, request *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	//make meal struc and get/make objectID, find by that id
-	var resulting_meal Meal
+	var resulting_meal models.Meal
 	id, _ := primitive.ObjectIDFromHex(params["id"])
 	filter := bson.D{{"_id", id }}
 	error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
 	//if the meal wasnt found, create it else send an error message
 	if error_msg != nil {
-		response_message := ErrorMessage{"meal not found"}
+		response_message := models.ErrorMessage{"meal not found"}
 		json.NewEncoder(response).Encode(response_message)
 	} else {
 		json.NewEncoder(response).Encode(resulting_meal)
@@ -132,7 +114,7 @@ func AddIngredientToMeal(response http.ResponseWriter, request *http.Request) {
 	id, _ := primitive.ObjectIDFromHex(params["id"])
 	filter := bson.D{{"_id", id }}
 
-	var ingredient Ingredient
+	var ingredient models.Ingredient
 	ingredient.ID = primitive.NewObjectID()
 	ingredient.Ingredient = request.FormValue("ingredient")
 	if cals, err := strconv.ParseInt(request.FormValue("calories"), 10, 32); err == nil {
@@ -147,11 +129,11 @@ func AddIngredientToMeal(response http.ResponseWriter, request *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var resulting_meal Meal
-	var updated_meal Meal
+	var resulting_meal models.Meal
+	var updated_meal models.Meal
 	error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
 	if error_msg != nil {
-		response_message := ErrorMessage{"meal not found"}
+		response_message := models.ErrorMessage{"meal not found"}
 		json.NewEncoder(response).Encode(response_message)
 	} else {
 		resulting_meal.Ingredients = append(resulting_meal.Ingredients, ingredient)
@@ -159,14 +141,13 @@ func AddIngredientToMeal(response http.ResponseWriter, request *http.Request) {
 		error_msg_2 := collection.FindOneAndReplace(ctx, filter, resulting_meal).Decode(&updated_meal)
 
 		if error_msg_2 != nil  {
-			response_message := ErrorMessage{"Unable to add ingredient"}
+			response_message := models.ErrorMessage{"Unable to add ingredient"}
 			json.NewEncoder(response).Encode(response_message)
 		} else {
 			json.NewEncoder(response).Encode(resulting_meal)
 		}
 	}
 }
-
 
 func DeleteMealById(response http.ResponseWriter, request *http.Request){
 		params := mux.Vars(request)
@@ -179,7 +160,7 @@ func DeleteMealById(response http.ResponseWriter, request *http.Request){
 		result, error_msg := collection.DeleteOne(ctx, filter)
 		//if the meal wasnt found, create it else send an error message
 		if error_msg != nil {
-			response_message := ErrorMessage{"meal not found"}
+			response_message := models.ErrorMessage{"meal not found"}
 			json.NewEncoder(response).Encode(response_message)
 		} else {
 			json.NewEncoder(response).Encode(result)
@@ -192,7 +173,7 @@ func DeleteIngredientFromMeal(response http.ResponseWriter, request *http.Reques
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	//make meal struc and get/make objectID, find by that id
-	var resulting_meal Meal
+	var resulting_meal models.Meal
 	id, _ := primitive.ObjectIDFromHex(params["id"])
 	ing_id, _ := primitive.ObjectIDFromHex(params["ingredient_id"])
 	filter := bson.D{{"_id", id }}
@@ -201,7 +182,7 @@ func DeleteIngredientFromMeal(response http.ResponseWriter, request *http.Reques
 	//ingredients is a slice. find index of ingredient to know where to remove
 
 	if error_msg != nil {
-		response_message := ErrorMessage{"meal not found"}
+		response_message := models.ErrorMessage{"meal not found"}
 		json.NewEncoder(response).Encode(response_message)
 	} else {
 		ingredients := resulting_meal.Ingredients
@@ -221,11 +202,11 @@ func DeleteIngredientFromMeal(response http.ResponseWriter, request *http.Reques
 		resulting_meal.Ingredients = new_ing_slice
 		resulting_meal.TotalCalories = resulting_meal.TotalCalories - calories_to_remove
 
-		var updated_meal Meal
+		var updated_meal models.Meal
 		error_msg_2 := collection.FindOneAndReplace(ctx, filter, resulting_meal).Decode(&updated_meal)
 
 		if error_msg_2 != nil  {
-			response_message := ErrorMessage{"Unable to remove ingredient"}
+			response_message := models.ErrorMessage{"Unable to remove ingredient"}
 			json.NewEncoder(response).Encode(response_message)
 		} else {
 			json.NewEncoder(response).Encode(resulting_meal)
@@ -242,7 +223,7 @@ func main() {
 
 	client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 	router := mux.NewRouter()
-	router.HandleFunc("/meal", CreateMeal).Methods("POST")
+	router.HandleFunc("/meals", CreateMeal).Methods("POST")
 	router.HandleFunc("/meals", GetMeals).Methods("GET")
 	router.HandleFunc("/meals/{id}", GetMealById).Methods("GET")
 	router.HandleFunc("/meals/{id}/ingredients", AddIngredientToMeal).Methods("PUT")
