@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"context"
   "log"
+  "github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
+  "go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
   "net/http"
 	"github.com/KatieSchmidt/meal_plan/models"
@@ -80,7 +82,20 @@ func GetMealplans(ctx context.Context, mongoClient *mongo.Client) func(http.Resp
 
 func GetMealplanById(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
-  	fmt.Println("This will get mealplan with its id")
+    params := mux.Vars(request)
+  	collection := mongoClient.Database("go_meals").Collection("mealplans")
+  	//make meal struc and get/make objectID, find by that id
+  	var resulting_mealplan models.Mealplan
+  	id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
+  	filter := bson.D{{"_id", id }}
+  	error_msg := collection.FindOne(ctx, filter).Decode(&resulting_mealplan)
+  	//if the meal wasnt found, create it else send an error message
+  	if error_msg != nil {
+  		response_message := models.ErrorMessage{"mealplan not found"}
+  		json.NewEncoder(response).Encode(response_message)
+  	} else {
+  		json.NewEncoder(response).Encode(resulting_mealplan)
+  	}
   }
 }
 
