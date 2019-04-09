@@ -24,3 +24,10 @@ type Ingredient struct {
 type ErrorMessage struct {
 	Error string
 }
+
+type Mealplan struct {
+	UserId string `json:"userid" bson:"userid"`
+	Planname string `json:"planname" bson:"planname"`
+	TotalCalories int64 `json:"totalcalories" bson:"totalcalories"`
+	Meals []Meal `json:"meals" bson:"meals"`
+}
