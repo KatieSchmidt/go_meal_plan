@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"encoding/json"
 	"context"
+  "log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
   "net/http"
@@ -50,7 +51,30 @@ func  CreateMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.R
 
 func GetMealplans(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func (response http.ResponseWriter, request *http.Request) {
-  	fmt.Println("This will get all mealplans")
+    response.Header().Set("content-type", "application/json")
+  	collection := mongoClient.Database("go_meals").Collection("mealplans")
+  	cursor, err := collection.Find(ctx, bson.M{})
+
+  	if err != nil {
+  		log.Fatal(err)
+  	}
+
+  	//create a list of meals of struc models.Meal
+  	var mealplans []models.Mealplan
+  	for cursor.Next(ctx) {
+  		var mealplan models.Mealplan
+  		cursor.Decode(&mealplan)
+  		mealplans = append(mealplans, mealplan)
+  	}
+
+  	if len(mealplans) > 0 {
+  		json.NewEncoder(response).Encode(mealplans)
+
+  	} else {
+  		//if there are no meals create a message Struct to send back
+  		response_message := models.ErrorMessage{"Error: No mealplans have been created"}
+  		json.NewEncoder(response).Encode(response_message)
+  	}
   }
 }
 
