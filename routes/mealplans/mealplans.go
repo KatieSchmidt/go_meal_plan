@@ -107,7 +107,53 @@ func GetMealplansByUserId(ctx context.Context, mongoClient *mongo.Client) func(h
 
 func AddMealToMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
-  	fmt.Println("This will add a meal to a mealplan")
+    request.ParseForm()
+  	response.Header().Set("content-type", "application/x-www-form-urlencoded")
+
+  	params := mux.Vars(request)
+
+  	meal_id, _ := primitive.ObjectIDFromHex(params["meal_id"])
+    plan_id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
+
+    fmt.Println("meal_id: ", meal_id)
+    fmt.Println("mealplan_id: ", plan_id)
+
+
+  	mealfilter := bson.D{{"_id", meal_id }}
+    mealplanfilter := bson.D{{"_id", plan_id }}
+
+  	mealcollection := mongoClient.Database("go_meals").Collection("meals")
+    mealplancollection := mongoClient.Database("go_meals").Collection("mealplans")
+
+  	var resulting_meal models.Meal
+    var resulting_mealplan models.Mealplan
+
+  	meal_error_msg := mealcollection.FindOne(ctx, mealfilter).Decode(&resulting_meal)
+  	if meal_error_msg != nil {
+  		response_message := models.ErrorMessage{"meal not found"}
+  		json.NewEncoder(response).Encode(response_message)
+  	} else {
+      mealplan_error_msg := mealplancollection.FindOne(ctx, mealplanfilter).Decode(&resulting_mealplan)
+
+  		if mealplan_error_msg != nil  {
+        fmt.Println(mealplan_error_msg)
+  			response_message := models.ErrorMessage{"You cant add a meal to a non-existant mealplan"}
+  			json.NewEncoder(response).Encode(response_message)
+  		} else {
+  			resulting_mealplan.Meals = append(resulting_mealplan.Meals, resulting_meal)
+        resulting_mealplan.TotalCalories = resulting_mealplan.TotalCalories + resulting_meal.TotalCalories
+
+        var updated_mealplan models.Mealplan
+        insertion_error := mealplancollection.FindOneAndReplace(ctx, mealplanfilter, resulting_mealplan).Decode(&updated_mealplan)
+
+        if insertion_error != nil {
+          response_message := models.ErrorMessage{"Unable to add meal to mealplan"}
+    			json.NewEncoder(response).Encode(response_message)
+        } else {
+          json.NewEncoder(response).Encode(updated_mealplan)
+        }
+  		}
+  	}
   }
 }
 
