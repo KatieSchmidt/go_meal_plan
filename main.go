@@ -32,6 +32,7 @@ func main() {
 	router.HandleFunc("/mealplans", mealplans.CreateMealplan(ctx, client)).Methods("POST")
 	router.HandleFunc("/mealplans",mealplans.GetMealplans(ctx, client)).Methods("GET")
 	router.HandleFunc("/mealplans/{mealplan_id}",mealplans.GetMealplanById(ctx, client)).Methods("GET")
+	router.HandleFunc("/mealplans/user/{user_id}",mealplans.GetMealplansByUserId(ctx, client)).Methods("GET")
 	router.HandleFunc("/mealplans/{mealplan_id}/{meal_id}",mealplans.AddMealToMealplan(ctx, client)).Methods("PUT")
 	router.HandleFunc("/mealplans/{mealplan_id}",mealplans.DeleteMealplan(ctx, client)).Methods("DELETE")
 	router.HandleFunc("/mealplans/{mealplan_id}/remove/{meal_id}",mealplans.DeleteMealFromMealplan(ctx, client)).Methods("PUT")

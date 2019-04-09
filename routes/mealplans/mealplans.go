@@ -109,10 +109,6 @@ func AddMealToMealplan(ctx context.Context, mongoClient *mongo.Client) func(http
   	meal_id, _ := primitive.ObjectIDFromHex(params["meal_id"])
     plan_id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
 
-    fmt.Println("meal_id: ", meal_id)
-    fmt.Println("mealplan_id: ", plan_id)
-
-
   	mealfilter := bson.D{{"_id", meal_id }}
     mealplanfilter := bson.D{{"_id", plan_id }}
 
@@ -153,7 +149,30 @@ func AddMealToMealplan(ctx context.Context, mongoClient *mongo.Client) func(http
 
 func GetMealplansByUserId(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
+    params := mux.Vars(request)
 
+    collection := mongoClient.Database("go_meals").Collection("mealplans")
+    filter := bson.D{{"userid", params["user_id"]}}
+
+    cursor, err := collection.Find(ctx, filter)
+
+    if err != nil {
+      error_response := models.ErrorMessage{"Mealplans not found"}
+      json.NewEncoder(response).Encode(error_response)
+    } else {
+      var mealplans []models.Mealplan
+      for cursor.Next(ctx){
+        var mealplan models.Mealplan
+        cursor.Decode(&mealplan)
+        mealplans = append(mealplans, mealplan)
+      }
+      if len(mealplans) > 0 {
+        json.NewEncoder(response).Encode(mealplans)
+      } else {
+        error_response := models.ErrorMessage{"This user has no mealplans"}
+        json.NewEncoder(response).Encode(error_response)
+      }
+    }
   }
 }
 
