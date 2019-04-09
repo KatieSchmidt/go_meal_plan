@@ -99,12 +99,6 @@ func GetMealplanById(ctx context.Context, mongoClient *mongo.Client) func(http.R
   }
 }
 
-func GetMealplansByUserId(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
-	return func(response http.ResponseWriter, request *http.Request) {
-  	fmt.Println("This will get a specific users mealplans")
-  }
-}
-
 func AddMealToMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
     request.ParseForm()
@@ -157,9 +151,29 @@ func AddMealToMealplan(ctx context.Context, mongoClient *mongo.Client) func(http
   }
 }
 
+func GetMealplansByUserId(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
+	return func(response http.ResponseWriter, request *http.Request) {
+
+  }
+}
+
 func DeleteMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
-  	fmt.Println("This will delete a mealplan")
+    params := mux.Vars(request)
+    collection := mongoClient.Database("go_meals").Collection("mealplans")
+    //make objectID, find by that id
+    id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
+    filter := bson.D{{"_id", id }}
+    result, _ := collection.DeleteOne(ctx, filter)
+
+    // DeleteOne always returns a result. error is always nil. so check to see if deleted count is equal to zero instead
+    if result.DeletedCount == 0 {
+      response_message := models.ErrorMessage{"mealplan not found"}
+      json.NewEncoder(response).Encode(response_message)
+    } else {
+      response_message := models.ErrorMessage{"mealplan deleted"}
+      json.NewEncoder(response).Encode(response_message)
+    }
   }
 }
 

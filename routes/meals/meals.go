@@ -150,14 +150,16 @@ func DeleteMealById(ctx context.Context, mongoClient *mongo.Client) func(http.Re
   		//make objectID, find by that id
   		id, _ := primitive.ObjectIDFromHex(params["id"])
   		filter := bson.D{{"_id", id }}
-  		result, error_msg := collection.DeleteOne(ctx, filter)
+  		result, _ := collection.DeleteOne(ctx, filter)
   		//if the meal wasnt found, create it else send an error message
-  		if error_msg != nil {
-  			response_message := models.ErrorMessage{"meal not found"}
-  			json.NewEncoder(response).Encode(response_message)
-  		} else {
-  			json.NewEncoder(response).Encode(result)
-  		}
+			// DeleteOne always returns a result. error is always nil. so check to see if deleted count is equal to zero instead
+	    if result.DeletedCount == 0 {
+	      response_message := models.ErrorMessage{"meal not found"}
+	      json.NewEncoder(response).Encode(response_message)
+	    } else {
+	      response_message := models.ErrorMessage{"meal deleted"}
+	      json.NewEncoder(response).Encode(response_message)
+	    }
   }
 }
 func DeleteIngredientFromMeal(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
