@@ -57,6 +57,8 @@ func CreateMeal(ctx context.Context, mongoClient *mongo.Client) func(http.Respon
   			// if it does return an error if not, make the meal
   		collection := mongoClient.Database("go_meals").Collection("meals")
   		var meal models.Meal
+
+	  	meal.ID = primitive.NewObjectID()
   		meal.Username = request.FormValue("username")
   		meal.Mealname = request.FormValue("mealname")
   		meal.DateAdded = time.Now()

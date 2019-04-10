@@ -198,6 +198,64 @@ func DeleteMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.Re
 
 func DeleteMealFromMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
-  	fmt.Println("This will remove a meal from a mealplan")
+
+    params := mux.Vars(request)
+
+  	mealplan_collection := mongoClient.Database("go_meals").Collection("mealplans")
+    meal_collection := mongoClient.Database("go_meals").Collection("meals")
+
+    mealplan_id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
+    meal_id, _ := primitive.ObjectIDFromHex(params["meal_id"])
+
+    mealplan_filter := bson.D{{"_id", mealplan_id}}
+    meal_filter := bson.D{{"_id", meal_id}}
+
+    var original_mealplan models.Mealplan
+    err := mealplan_collection.FindOne(ctx, mealplan_filter).Decode(&original_mealplan)
+    fmt.Println(err)
+    if err != nil {
+      error_message := models.ErrorMessage{"Mealplan Not Found"}
+      json.NewEncoder(response).Encode(error_message)
+    } else {
+      var meal models.Meal
+      err := meal_collection.FindOne(ctx, meal_filter).Decode(&meal)
+
+      if err != nil {
+        error_message := models.ErrorMessage{"Meal Not Found"}
+        json.NewEncoder(response).Encode(error_message)
+      } else {
+        //even if there is more than one occurance of the meal, only delete one of them from the plan at a time
+        index := 0
+        running := true
+        var calories_to_remove int64 = 0
+        for i := 0; i < len(original_mealplan.Meals) && running == true; i ++ {
+          if original_mealplan.Meals[i].ID == meal.ID {
+            index = i
+            calories_to_remove = original_mealplan.Meals[i].TotalCalories
+            running = false
+          }
+          if running == true && calories_to_remove == 0{
+            error_message := models.ErrorMessage{"Meal Not Found in mealplan"}
+            json.NewEncoder(response).Encode(error_message)
+          } else {
+            new_meals_slice := append(original_mealplan.Meals[:index], original_mealplan.Meals[index + 1:]...)
+
+        		original_mealplan.Meals = new_meals_slice
+        		original_mealplan.TotalCalories = original_mealplan.TotalCalories - calories_to_remove
+
+            var updated_mealplan models.Mealplan
+        		error_msg := mealplan_collection.FindOneAndReplace(ctx, mealplan_filter, original_mealplan).Decode(&updated_mealplan)
+            fmt.Println(error_msg)
+        		if error_msg != nil  {
+        			response_message := models.ErrorMessage{"Unable to remove meal from mealplan"}
+        			json.NewEncoder(response).Encode(response_message)
+        		} else {
+        			json.NewEncoder(response).Encode(updated_mealplan)
+        		}
+          }
+      }
+      }
+
+    }
   }
 }
