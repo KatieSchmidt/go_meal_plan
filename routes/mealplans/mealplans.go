@@ -261,7 +261,6 @@ func DeleteMealFromMealplan(ctx context.Context, mongoClient *mongo.Client) func
         }
       }
       }
-
     }
   }
 }

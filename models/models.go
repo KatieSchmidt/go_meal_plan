@@ -7,7 +7,7 @@ import (
 
 type Meal struct {
 	ID primitive.ObjectID `json:"meal_id" bson:"meal_id"`
-	Username string  `json:"username" bson:"username"`
+	User primitive.ObjectID  `json:"user" bson:"user"`
 	Mealname  string `json:"mealname" bson:"mealname"`
 	TotalCalories int64 `json:"totalcalories" bson:"totalcalories"`
 	Ingredients []Ingredient `json:"ingredients" bson:"ingredients"`
@@ -27,7 +27,7 @@ type ErrorMessage struct {
 }
 
 type Mealplan struct {
-	UserId string `json:"userid" bson:"userid"`
+	User string `json:"user" bson:"user"`
 	Planname string `json:"planname" bson:"planname"`
 	TotalCalories int64 `json:"totalcalories" bson:"totalcalories"`
 	Meals []Meal `json:"meals" bson:"meals"`
