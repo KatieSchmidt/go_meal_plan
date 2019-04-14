@@ -36,20 +36,29 @@ func  CreateMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.R
   		mealplan.User = request.FormValue("user")
   		mealplan.Planname = request.FormValue("planname")
   		filter := bson.D{{"user", mealplan.User}, {"planname", mealplan.Planname}}
-  		error_msg := collection.FindOne(ctx, filter)
+
+			var temp models.Mealplan
+  		error_msg := collection.FindOne(ctx, filter).Decode(&temp)
 
   		if error_msg != nil {
-  			_, err := collection.InsertOne(ctx, mealplan)
+				fmt.Println(temp)
+				_, err := collection.InsertOne(ctx, mealplan)
   			if err != nil {
-  				response_message := models.ErrorMessage{"ERROR: there was an error creating your mealplan"}
+
+					var response_message models.Errors
+					response_message.Mealplan = "Could not create mealplan"
+
   				json.NewEncoder(response).Encode(response_message)
   			} else {
   				//if there isnt an error, meal was inserted, so return the meal
   				json.NewEncoder(response).Encode(mealplan)
   			}
   		} else {
-  			error := models.ErrorMessage{"A mealplan exists with this name already "}
-  			json.NewEncoder(response).Encode(error)
+				var response_message models.Errors
+				response_message.Mealplan = "A mealplan exists with this name already "
+  			json.NewEncoder(response).Encode(response_message)
+
+
   		}
   	}
   }
@@ -95,9 +104,10 @@ func GetMealplanById(ctx context.Context, mongoClient *mongo.Client) func(http.R
   	id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
   	filter := bson.D{{"_id", id }}
   	error_msg := collection.FindOne(ctx, filter).Decode(&resulting_mealplan)
-  	//if the meal wasnt found, create it else send an error message
+  	//if the meal wasnt found send an error message
   	if error_msg != nil {
-  		response_message := models.ErrorMessage{"mealplan not found"}
+  		var response_message models.Errors
+			response_message.Mealplan = "Mealplan with this id doesn't exist"
   		json.NewEncoder(response).Encode(response_message)
   	} else {
   		json.NewEncoder(response).Encode(resulting_mealplan)
@@ -132,7 +142,6 @@ func AddMealToMealplan(ctx context.Context, mongoClient *mongo.Client) func(http
       mealplan_error_msg := mealplancollection.FindOne(ctx, mealplanfilter).Decode(&resulting_mealplan)
 
   		if mealplan_error_msg != nil  {
-        fmt.Println(mealplan_error_msg)
   			response_message := models.ErrorMessage{"You cant add a meal to a non-existant mealplan"}
   			json.NewEncoder(response).Encode(response_message)
   		} else {
@@ -224,7 +233,6 @@ func DeleteMealFromMealplan(ctx context.Context, mongoClient *mongo.Client) func
 
     var original_mealplan models.Mealplan
     err := mealplan_collection.FindOne(ctx, mealplan_filter).Decode(&original_mealplan)
-    fmt.Println(err)
     if err != nil {
       error_message := models.ErrorMessage{"Mealplan Not Found"}
       json.NewEncoder(response).Encode(error_message)
@@ -258,7 +266,6 @@ func DeleteMealFromMealplan(ctx context.Context, mongoClient *mongo.Client) func
 
         var updated_mealplan models.Mealplan
         error_msg := mealplan_collection.FindOneAndReplace(ctx, mealplan_filter, original_mealplan).Decode(&updated_mealplan)
-        fmt.Println(error_msg)
         if error_msg != nil  {
           response_message := models.ErrorMessage{"Unable to remove meal from mealplan"}
           json.NewEncoder(response).Encode(response_message)

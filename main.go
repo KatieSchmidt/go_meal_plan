@@ -36,6 +36,6 @@ func main() {
 	router.HandleFunc("/mealplans/user/{user_id}",mealplans.GetMealplansByUserId(ctx, client)).Methods("GET")
 	router.HandleFunc("/mealplans/{mealplan_id}/{meal_id}",mealplans.AddMealToMealplan(ctx, client)).Methods("PUT")
 	router.HandleFunc("/mealplans/{mealplan_id}",mealplans.DeleteMealplan(ctx, client)).Methods("DELETE")
-	router.HandleFunc("/mealplans/remove/{mealplan_id}/{meal_id}",mealplans.DeleteMealFromMealplan(ctx, client)).Methods("PUT")
+	router.HandleFunc("/mealplans/{mealplan_id}/remove/{meal_id}",mealplans.DeleteMealFromMealplan(ctx, client)).Methods("PUT")
 	log.Fatal(http.ListenAndServe(":5000", router))
 }
