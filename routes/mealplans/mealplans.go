@@ -13,15 +13,21 @@ import (
 	"github.com/KatieSchmidt/meal_plan/models"
 )
 
-
 func  CreateMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
   	request.ParseForm()
   	response.Header().Set("content-type", "application/x-www-form-urlencoded")
 
-  	if len(request.FormValue("userid")) == 0 || len(request.FormValue("planname")) == 0 {
-  		meal_error := models.ErrorMessage{"One of your form fields was empty"}
-  		json.NewEncoder(response).Encode(meal_error)
+   	if len(request.FormValue("planname")) == 0 || len(request.FormValue("user")) < 24 {
+			var meal_errors models.Errors
+
+			if len(request.FormValue("planname")) == 0{
+				meal_errors.Planname = "Planname required"
+			}
+			if len(request.FormValue("user")) < 24 {
+				meal_errors.Planname = "24 count required"
+			}
+  		json.NewEncoder(response).Encode(meal_errors)
   	} else {
   		// look for a mealplan that has same name and user
   			// if it does return an error if not, make the meal

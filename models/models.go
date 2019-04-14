@@ -15,7 +15,7 @@ type Meal struct {
 }
 
 type Ingredient struct {
-	ID primitive.ObjectID `json:"ing_id" bson:"ing_id"`
+	ID primitive.ObjectID `json:"_id" bson:"_id"`
 	Ingredient string `json:"ingredient" bson:"ingredient"`
 	Calories float64 `json:"calories" bson:"calories"`
 	MeasureUnitQuantity float64 `json:"measureunitquantity" bson:"measureunitquantity"`
@@ -24,6 +24,14 @@ type Ingredient struct {
 
 type ErrorMessage struct {
 	Error string
+}
+
+type Errors struct{
+	Planname string `json:"planname,omitempty" bson:"planname,omitempty"`
+	User string `json:"user,omitempty" bson:"user,omitempty"`
+	Mealplan string `json:"mealplan,omitempty" bson:"mealplan,omitempty"`
+	Meal string `json:"meal,omitempty" bson:"meal,omitempty"`
+	Ingredient string `json:"ingredient,omitempty" bson:"ingredient,omitempty"`
 }
 
 type Mealplan struct {

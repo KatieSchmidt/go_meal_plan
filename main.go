@@ -28,6 +28,7 @@ func main() {
 	router.HandleFunc("/meals/{meal_id}", meals.AddIngredientToMeal(ctx, client)).Methods("PUT")
 	router.HandleFunc("/meals/{meal_id}", meals.DeleteMealById(ctx, client)).Methods("DELETE")
 	router.HandleFunc("/meals/{meal_id}/remove/{ingredient_id}", meals.DeleteIngredientFromMeal(ctx, client)).Methods("PUT")
+
 	//mealplan routes
 	router.HandleFunc("/mealplans", mealplans.CreateMealplan(ctx, client)).Methods("POST")
 	router.HandleFunc("/mealplans",mealplans.GetMealplans(ctx, client)).Methods("GET")
