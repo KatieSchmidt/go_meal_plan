@@ -89,7 +89,8 @@ func GetMealplans(ctx context.Context, mongoClient *mongo.Client) func(http.Resp
 
   	} else {
   		//if there are no meals create a message Struct to send back
-  		response_message := models.ErrorMessage{"Error: No mealplans have been created"}
+			var response_message models.Errors
+			response_message.Mealplan = "No mealplans have been created"
   		json.NewEncoder(response).Encode(response_message)
   	}
   }
@@ -136,14 +137,16 @@ func AddMealToMealplan(ctx context.Context, mongoClient *mongo.Client) func(http
 
   	meal_error_msg := mealcollection.FindOne(ctx, mealfilter).Decode(&resulting_meal)
   	if meal_error_msg != nil {
-  		response_message := models.ErrorMessage{"meal not found"}
+			var response_message models.Errors
+			response_message.Meal = "Meal not found"
   		json.NewEncoder(response).Encode(response_message)
   	} else {
       mealplan_error_msg := mealplancollection.FindOne(ctx, mealplanfilter).Decode(&resulting_mealplan)
 
   		if mealplan_error_msg != nil  {
-  			response_message := models.ErrorMessage{"You cant add a meal to a non-existant mealplan"}
-  			json.NewEncoder(response).Encode(response_message)
+				var response_message models.Errors
+				response_message.Mealplan = "You cant add a meal to a non-existant mealplan"
+	  		json.NewEncoder(response).Encode(response_message)
   		} else {
   			resulting_mealplan.Meals = append(resulting_mealplan.Meals, resulting_meal)
         resulting_mealplan.TotalCalories = resulting_mealplan.TotalCalories + resulting_meal.TotalCalories
@@ -152,13 +155,15 @@ func AddMealToMealplan(ctx context.Context, mongoClient *mongo.Client) func(http
         insertion_error := mealplancollection.FindOneAndReplace(ctx, mealplanfilter, resulting_mealplan).Decode(&updated_mealplan)
 
         if insertion_error != nil {
-          response_message := models.ErrorMessage{"Unable to add meal to mealplan"}
-    			json.NewEncoder(response).Encode(response_message)
+					var response_message models.Errors
+					response_message.Mealplan = "Unable to add meal to mealplan"
+		  		json.NewEncoder(response).Encode(response_message)
         } else {
           err := mealplancollection.FindOne(ctx, mealplanfilter).Decode(&updated_mealplan)
           if err != nil {
-            response_message := models.ErrorMessage{"Couldnt find updated meal"}
-      			json.NewEncoder(response).Encode(response_message)
+						var response_message models.Errors
+						response_message.Mealplan = "Couldnt find updated mealplan"
+			  		json.NewEncoder(response).Encode(response_message)
           } else {
             json.NewEncoder(response).Encode(updated_mealplan)
           }
@@ -173,13 +178,14 @@ func GetMealplansByUserId(ctx context.Context, mongoClient *mongo.Client) func(h
     params := mux.Vars(request)
 
     collection := mongoClient.Database("go_meals").Collection("mealplans")
-    filter := bson.D{{"userid", params["user_id"]}}
+    filter := bson.D{{"user", params["user_id"]}}
 
     cursor, err := collection.Find(ctx, filter)
 
     if err != nil {
-      error_response := models.ErrorMessage{"Mealplans not found"}
-      json.NewEncoder(response).Encode(error_response)
+			var response_message models.Errors
+			response_message.Mealplan = "Mealplans not found for this user"
+			json.NewEncoder(response).Encode(response_message)
     } else {
       var mealplans []models.Mealplan
       for cursor.Next(ctx){
@@ -190,8 +196,9 @@ func GetMealplansByUserId(ctx context.Context, mongoClient *mongo.Client) func(h
       if len(mealplans) > 0 {
         json.NewEncoder(response).Encode(mealplans)
       } else {
-        error_response := models.ErrorMessage{"This user has no mealplans"}
-        json.NewEncoder(response).Encode(error_response)
+				var response_message models.Errors
+				response_message.Mealplan = "This user has no mealplans"
+				json.NewEncoder(response).Encode(response_message)
       }
     }
   }
@@ -208,10 +215,11 @@ func DeleteMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.Re
 
     // DeleteOne always returns a result. error is always nil. so check to see if deleted count is equal to zero instead
     if result.DeletedCount == 0 {
-      response_message := models.ErrorMessage{"mealplan not found"}
-      json.NewEncoder(response).Encode(response_message)
+			var response_message models.Errors
+			response_message.Mealplan = "mealplan not found"
+			json.NewEncoder(response).Encode(response_message)
     } else {
-      response_message := models.ErrorMessage{"mealplan deleted"}
+      response_message := models.ResponseMessage{"mealplan deleted"}
       json.NewEncoder(response).Encode(response_message)
     }
   }
@@ -234,15 +242,17 @@ func DeleteMealFromMealplan(ctx context.Context, mongoClient *mongo.Client) func
     var original_mealplan models.Mealplan
     err := mealplan_collection.FindOne(ctx, mealplan_filter).Decode(&original_mealplan)
     if err != nil {
-      error_message := models.ErrorMessage{"Mealplan Not Found"}
-      json.NewEncoder(response).Encode(error_message)
+			var response_message models.Errors
+			response_message.Mealplan = "Mealplan Not Found"
+			json.NewEncoder(response).Encode(response_message)
     } else {
       var meal models.Meal
       err := meal_collection.FindOne(ctx, meal_filter).Decode(&meal)
 
       if err != nil {
-        error_message := models.ErrorMessage{"Meal Not Found"}
-        json.NewEncoder(response).Encode(error_message)
+				var response_message models.Errors
+				response_message.Mealplan = "Meal Not Found"
+				json.NewEncoder(response).Encode(response_message)
       } else {
         //even if there is more than one occurance of the meal, only delete one of them from the plan at a time
         index := 0
@@ -256,8 +266,9 @@ func DeleteMealFromMealplan(ctx context.Context, mongoClient *mongo.Client) func
           }
       }
       if running == true && calories_to_remove == 0{
-        error_message := models.ErrorMessage{"Meal Not Found in mealplan"}
-        json.NewEncoder(response).Encode(error_message)
+				var response_message models.Errors
+				response_message.Mealplan = "Meal Not Found in mealplan"
+				json.NewEncoder(response).Encode(response_message)
       } else {
         new_meals_slice := append(original_mealplan.Meals[:index], original_mealplan.Meals[index + 1:]...)
 
@@ -267,8 +278,9 @@ func DeleteMealFromMealplan(ctx context.Context, mongoClient *mongo.Client) func
         var updated_mealplan models.Mealplan
         error_msg := mealplan_collection.FindOneAndReplace(ctx, mealplan_filter, original_mealplan).Decode(&updated_mealplan)
         if error_msg != nil  {
-          response_message := models.ErrorMessage{"Unable to remove meal from mealplan"}
-          json.NewEncoder(response).Encode(response_message)
+					var response_message models.Errors
+					response_message.Mealplan = "Unable to remove meal from mealplan"
+					json.NewEncoder(response).Encode(response_message)
         } else {
           json.NewEncoder(response).Encode(original_mealplan)
         }

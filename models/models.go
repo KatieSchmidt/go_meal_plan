@@ -22,8 +22,11 @@ type Ingredient struct {
 	MeasureUnit string `json:"measureunit" bson:"measureunit"`
 }
 
+type ResponseMessage struct {
+	Response string
+}
 type ErrorMessage struct {
-	Error string
+	Response string
 }
 
 type Errors struct{
