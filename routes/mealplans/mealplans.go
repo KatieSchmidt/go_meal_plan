@@ -27,9 +27,9 @@ func  CreateMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.R
   			// if it does return an error if not, make the meal
   		collection := mongoClient.Database("go_meals").Collection("mealplans")
   		var mealplan models.Mealplan
-  		mealplan.UserId = request.FormValue("userid")
+  		mealplan.User = request.FormValue("user")
   		mealplan.Planname = request.FormValue("planname")
-  		filter := bson.D{{"userid", mealplan.UserId}, {"planname", mealplan.Planname}}
+  		filter := bson.D{{"user", mealplan.User}, {"planname", mealplan.Planname}}
   		error_msg := collection.FindOne(ctx, filter)
 
   		if error_msg != nil {
@@ -233,7 +233,7 @@ func DeleteMealFromMealplan(ctx context.Context, mongoClient *mongo.Client) func
         //even if there is more than one occurance of the meal, only delete one of them from the plan at a time
         index := 0
         running := true
-        var calories_to_remove int64 = 0
+        var calories_to_remove float64 = 0
         for i := 0; i < len(original_mealplan.Meals) && running == true; i ++ {
           if original_mealplan.Meals[i].ID == meal.ID {
             index = i

@@ -49,7 +49,7 @@ func CreateMeal(ctx context.Context, mongoClient *mongo.Client) func(http.Respon
   	request.ParseForm()
   	response.Header().Set("content-type", "application/x-www-form-urlencoded")
 
-  	if len(request.FormValue("username")) == 0 || len(request.FormValue("mealname")) == 0{
+  	if len(request.FormValue("user")) == 0 || len(request.FormValue("mealname")) == 0{
   		meal_error := models.ErrorMessage{"One of your form fields was empty"}
   		json.NewEncoder(response).Encode(meal_error)
   	} else {
@@ -59,10 +59,10 @@ func CreateMeal(ctx context.Context, mongoClient *mongo.Client) func(http.Respon
   		var meal models.Meal
 
 	  	meal.ID = primitive.NewObjectID()
-  		meal.Username = request.FormValue("username")
+  		meal.User, _ = primitive.ObjectIDFromHex(request.FormValue("user"))
   		meal.Mealname = request.FormValue("mealname")
   		meal.DateAdded = time.Now()
-  		filter := bson.D{{"username", meal.Username}, {"mealname", meal.Mealname}}
+  		filter := bson.D{{"user", meal.User}, {"mealname", meal.Mealname}}
   		var resulting_meal models.Meal
   		error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
   		//if the meal wasnt found, create it else send an error message
@@ -90,8 +90,8 @@ func GetMealById(ctx context.Context, mongoClient *mongo.Client) func(http.Respo
   	collection := mongoClient.Database("go_meals").Collection("meals")
   	//make meal struc and get/make objectID, find by that id
   	var resulting_meal models.Meal
-  	id, _ := primitive.ObjectIDFromHex(params["id"])
-  	filter := bson.D{{"_id", id }}
+  	meal_id, _ := primitive.ObjectIDFromHex(params["meal_id"])
+  	filter := bson.D{{"_id", meal_id }}
   	error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
   	//if the meal wasnt found, create it else send an error message
   	if error_msg != nil {
@@ -109,17 +109,17 @@ func AddIngredientToMeal(ctx context.Context, mongoClient *mongo.Client) func(ht
   	response.Header().Set("content-type", "application/x-www-form-urlencoded")
 
   	params := mux.Vars(request)
-  	id, _ := primitive.ObjectIDFromHex(params["id"])
-  	filter := bson.D{{"_id", id }}
+  	meal_id, _ := primitive.ObjectIDFromHex(params["meal_id"])
+  	filter := bson.D{{"_id", meal_id }}
 
   	var ingredient models.Ingredient
   	ingredient.ID = primitive.NewObjectID()
   	ingredient.Ingredient = request.FormValue("ingredient")
-  	if cals, err := strconv.ParseInt(request.FormValue("calories"), 10, 32); err == nil {
+  	if cals, err := strconv.ParseFloat(request.FormValue("calories"), 64); err == nil {
   		ingredient.Calories = cals
   	}
   	ingredient.MeasureUnit = request.FormValue("measureunit")
-  	if units, err := strconv.ParseInt(request.FormValue("measureunitquantity"), 10, 32); err == nil {
+  	if units, err := strconv.ParseFloat(request.FormValue("measureunitquantity"), 64); err == nil {
   		ingredient.MeasureUnitQuantity = units
   	}
 
@@ -150,7 +150,7 @@ func DeleteMealById(ctx context.Context, mongoClient *mongo.Client) func(http.Re
   		params := mux.Vars(request)
   		collection := mongoClient.Database("go_meals").Collection("meals")
   		//make objectID, find by that id
-  		id, _ := primitive.ObjectIDFromHex(params["id"])
+  		id, _ := primitive.ObjectIDFromHex(params["meal_id"])
   		filter := bson.D{{"_id", id }}
   		result, _ := collection.DeleteOne(ctx, filter)
   		//if the meal wasnt found, create it else send an error message
@@ -170,9 +170,9 @@ func DeleteIngredientFromMeal(ctx context.Context, mongoClient *mongo.Client) fu
   	collection := mongoClient.Database("go_meals").Collection("meals")
   	//make meal struc and get/make objectID, find by that id
   	var resulting_meal models.Meal
-  	id, _ := primitive.ObjectIDFromHex(params["id"])
+  	meal_id, _ := primitive.ObjectIDFromHex(params["meal_id"])
   	ing_id, _ := primitive.ObjectIDFromHex(params["ingredient_id"])
-  	filter := bson.D{{"_id", id }}
+  	filter := bson.D{{"_id", meal_id }}
   	error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
   	//find meal
   	//ingredients is a slice. find index of ingredient to know where to remove
@@ -184,7 +184,7 @@ func DeleteIngredientFromMeal(ctx context.Context, mongoClient *mongo.Client) fu
   		ingredients := resulting_meal.Ingredients
   		index := 0
   		running := true
-  		var calories_to_remove int64 = 0
+  		var calories_to_remove float64 = 0
   		for i := 0; i < len(ingredients) && running == true; i++ {
   			if ingredients[i].ID == ing_id {
   				index = i

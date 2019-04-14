@@ -6,10 +6,10 @@ import (
 )
 
 type Meal struct {
-	ID primitive.ObjectID `json:"meal_id" bson:"meal_id"`
+	ID primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
 	User primitive.ObjectID  `json:"user" bson:"user"`
 	Mealname  string `json:"mealname" bson:"mealname"`
-	TotalCalories int64 `json:"totalcalories" bson:"totalcalories"`
+	TotalCalories float64 `json:"totalcalories" bson:"totalcalories"`
 	Ingredients []Ingredient `json:"ingredients" bson:"ingredients"`
 	DateAdded time.Time
 }
@@ -17,8 +17,8 @@ type Meal struct {
 type Ingredient struct {
 	ID primitive.ObjectID `json:"ing_id" bson:"ing_id"`
 	Ingredient string `json:"ingredient" bson:"ingredient"`
-	Calories int64 `json:"calories" bson:"calories"`
-	MeasureUnitQuantity int64 `json:"measureunitquantity" bson:"measureunitquantity"`
+	Calories float64 `json:"calories" bson:"calories"`
+	MeasureUnitQuantity float64 `json:"measureunitquantity" bson:"measureunitquantity"`
 	MeasureUnit string `json:"measureunit" bson:"measureunit"`
 }
 
@@ -29,6 +29,6 @@ type ErrorMessage struct {
 type Mealplan struct {
 	User string `json:"user" bson:"user"`
 	Planname string `json:"planname" bson:"planname"`
-	TotalCalories int64 `json:"totalcalories" bson:"totalcalories"`
+	TotalCalories float64 `json:"totalcalories" bson:"totalcalories"`
 	Meals []Meal `json:"meals" bson:"meals"`
 }
