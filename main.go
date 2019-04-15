@@ -43,7 +43,7 @@ func main() {
 	router.HandleFunc("/grocerylists/{mealplan_id}", grocerylists.CreateGrocerylist(ctx, client)).Methods("POST")
 	router.HandleFunc("/grocerylists", grocerylists.GetGrocerylists(ctx, client)).Methods("GET")
 	router.HandleFunc("/grocerylists/{mealplan_id}", grocerylists.GetGrocerylistByMealplan(ctx, client)).Methods("GET")
-	router.HandleFunc("/grocerylists/{mealplan_id}/grocery_id", grocerylists.RemoveItemFromGroceryList(ctx, client)).Methods("PUT")
+	router.HandleFunc("/grocerylists/{mealplan_id}/{grocery_id}", grocerylists.RemoveItemFromGroceryList(ctx, client)).Methods("PUT")
 	router.HandleFunc("/grocerylists/{grocerylist_id}", grocerylists.DeleteGroceryList(ctx, client)).Methods("PUT")
 	log.Fatal(http.ListenAndServe(":5000", router))
 }

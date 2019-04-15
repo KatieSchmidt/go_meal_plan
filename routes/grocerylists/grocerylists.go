@@ -158,7 +158,48 @@ func GetGrocerylistByMealplan(ctx context.Context, mongoClient *mongo.Client) fu
 
 func RemoveItemFromGroceryList(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
-    // return "remove item from  list", 200
+    response.Header().Set("content-type", "application/x-www-form-urlencoded")
+    params := mux.Vars(request)
+    mealplan_id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
+    grocery_id, _ := primitive.ObjectIDFromHex(params["grocery_id"])
+    collection := mongoClient.Database("go_meals").Collection("grocerylists")
+    filter := bson.D{{"associatedmealplanid", mealplan_id}}
+
+    var grocerylist models.Grocerylist
+    err := collection.FindOne(ctx, filter).Decode(&grocerylist)
+
+    if err != nil {
+      var errors models.Errors
+      errors.Grocerylist = "this grocery list wasn't found"
+    } else {
+      deleted := false
+      for index, item := range grocerylist.Groceries {
+        if item.ID == grocery_id {
+          new_grocerylist_slice := append(grocerylist.Groceries[:index], grocerylist.Groceries[index + 1:]...)
+          grocerylist.Groceries = new_grocerylist_slice
+          deleted = true
+          break
+        }
+      }
+      if deleted != true {
+        var error_message models.Errors
+        error_message.Grocerylist = "This item didnt get deleted."
+        json.NewEncoder(response).Encode(error_message)
+      } else {
+        var replaced_list models.Grocerylist
+        err := collection.FindOneAndReplace(ctx, filter, grocerylist).Decode(&replaced_list)
+
+        if err != nil {
+          var error_message models.Errors
+          error_message.Grocerylist = "couldnt replace the old meal with a new meal"
+          json.NewEncoder(response).Encode(error_message)
+        } else {
+          json.NewEncoder(response).Encode(grocerylist)
+        }
+      }
+    }
+
+
   }
 }
 
