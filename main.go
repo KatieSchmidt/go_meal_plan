@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"github.com/KatieSchmidt/meal_plan/routes/meals"
 	"github.com/KatieSchmidt/meal_plan/routes/mealplans"
+	"github.com/KatieSchmidt/meal_plan/routes/grocerylists"
 )
 
 var client *mongo.Client
@@ -37,5 +38,12 @@ func main() {
 	router.HandleFunc("/mealplans/{mealplan_id}/{meal_id}",mealplans.AddMealToMealplan(ctx, client)).Methods("PUT")
 	router.HandleFunc("/mealplans/{mealplan_id}",mealplans.DeleteMealplan(ctx, client)).Methods("DELETE")
 	router.HandleFunc("/mealplans/{mealplan_id}/remove/{meal_id}",mealplans.DeleteMealFromMealplan(ctx, client)).Methods("PUT")
+
+	//grocerylist routes
+	router.HandleFunc("/grocerylists/{mealplan_id}", grocerylists.CreateGrocerylist(ctx, client)).Methods("POST")
+	router.HandleFunc("/grocerylists", grocerylists.GetGrocerylists(ctx, client)).Methods("GET")
+	router.HandleFunc("/grocerylists/{mealplan_id}", grocerylists.GetGrocerylistByMealplan(ctx, client)).Methods("GET")
+	router.HandleFunc("/grocerylists/{mealplan_id}/grocery_id", grocerylists.RemoveItemFromGroceryList(ctx, client)).Methods("PUT")
+	router.HandleFunc("/grocerylists/{grocerylist_id}", grocerylists.DeleteGroceryList(ctx, client)).Methods("PUT")
 	log.Fatal(http.ListenAndServe(":5000", router))
 }

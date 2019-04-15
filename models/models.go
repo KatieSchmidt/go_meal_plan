@@ -35,6 +35,7 @@ type Errors struct{
 	Mealplan string `json:"mealplan,omitempty" bson:"mealplan,omitempty"`
 	Meal string `json:"meal,omitempty" bson:"meal,omitempty"`
 	Ingredient string `json:"ingredient,omitempty" bson:"ingredient,omitempty"`
+	Grocerylist string `json:"grocerylist,omitempty" bson:"grocerylist,omitempty"`
 }
 
 type Mealplan struct {
@@ -42,4 +43,16 @@ type Mealplan struct {
 	Planname string `json:"planname" bson:"planname"`
 	TotalCalories float64 `json:"totalcalories" bson:"totalcalories"`
 	Meals []Meal `json:"meals" bson:"meals"`
+}
+
+type Grocerylist struct {
+	AssociatedMealplanId primitive.ObjectID  `json:"associatedmealplanid" bson:"associatedmealplanid"`
+	Groceries []Groceryitem
+}
+
+type Groceryitem struct {
+	ID primitive.ObjectID  `json:"_id" bson:"_id"`
+	Ingredient string `json:"ingredient" bson:"ingredient"`
+	Quantity float64 `json:"quantity" bson:"quantity"`
+	MeasureUnit string `json:"measureunit" bson:"measureunit"`
 }
