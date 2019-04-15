@@ -25,7 +25,7 @@ func  CreateMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.R
 				meal_errors.Planname = "Planname required"
 			}
 			if len(request.FormValue("user")) < 24 {
-				meal_errors.Planname = "24 count required"
+				meal_errors.User = "24 count required"
 			}
   		json.NewEncoder(response).Encode(meal_errors)
   	} else {

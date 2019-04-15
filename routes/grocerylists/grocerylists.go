@@ -1,7 +1,6 @@
 package grocerylists
 
 import (
-	"fmt"
 	"encoding/json"
 	"context"
   "strings"
@@ -78,8 +77,6 @@ func CreateGrocerylist(ctx context.Context, mongoClient *mongo.Client) func(http
 
 
       if grocerylist_err != nil {
-        fmt.Println("no list found, creating new one")
-
         _, insertion_err := grocery_collection.InsertOne(ctx, grocerylist)
         if insertion_err != nil {
           var response_message models.Errors
@@ -89,8 +86,6 @@ func CreateGrocerylist(ctx context.Context, mongoClient *mongo.Client) func(http
           json.NewEncoder(response).Encode(grocerylist)
         }
       } else {
-        fmt.Println("list found, replacing")
-
         var replaced_list models.Grocerylist
         replacement_err := grocery_collection.FindOneAndReplace(ctx, grocerylist_filter, grocerylist).Decode(&replaced_list)
         if replacement_err != nil {
@@ -198,13 +193,25 @@ func RemoveItemFromGroceryList(ctx context.Context, mongoClient *mongo.Client) f
         }
       }
     }
-
-
   }
 }
 
 func DeleteGroceryList(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
+    response.Header().Set("content-type", "application/x-www-form-urlencoded")
+    collection := mongoClient.Database("go_meals").Collection("grocerylists")
+    params := mux.Vars(request)
+    mealplan_id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
+    filter := bson.D{{"associatedmealplanid", mealplan_id}}
+    deleted_result, _ := collection.DeleteOne(ctx, filter)
 
+    if deleted_result.DeletedCount == 0 {
+      var response_message models.Errors
+			response_message.Mealplan = "grocery list not deleted"
+			json.NewEncoder(response).Encode(response_message)
+    } else {
+      response_message := models.ResponseMessage{"grocery list deleted"}
+      json.NewEncoder(response).Encode(response_message)
+    }
   }
 }
