@@ -132,14 +132,27 @@ func GetGrocerylists(ctx context.Context, mongoClient *mongo.Client) func(http.R
 			response_message.Mealplan = "No grocerylists have been created"
   		json.NewEncoder(response).Encode(response_message)
   	}
-
-
   }
 }
 
 func GetGrocerylistByMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
-    // return "get list by id ", 200
+    response.Header().Set("conent-type", "application/x-www-form-urlencoded")
+    params := mux.Vars(request)
+    mealplan_id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
+    filter := bson.D{{"associatedmealplanid", mealplan_id}}
+
+    collection := mongoClient.Database("go_meals").Collection("grocerylists")
+    var grocerylist models.Grocerylist
+    err := collection.FindOne(ctx, filter).Decode(&grocerylist)
+    if err != nil {
+      var error_message models.Errors
+      error_message.Grocerylist = "This mealplan doesnt have a grocery list or the mealpla doesnt exist with this id"
+      json.NewEncoder(response).Encode(error_message)
+    } else {
+      json.NewEncoder(response).Encode(grocerylist)
+    }
+
   }
 }
 
