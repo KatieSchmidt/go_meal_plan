@@ -11,6 +11,7 @@ import (
 	"github.com/KatieSchmidt/meal_plan/routes/meals"
 	"github.com/KatieSchmidt/meal_plan/routes/mealplans"
 	"github.com/KatieSchmidt/meal_plan/routes/grocerylists"
+	"github.com/KatieSchmidt/meal_plan/routes/users"
 )
 
 var client *mongo.Client
@@ -45,5 +46,10 @@ func main() {
 	router.HandleFunc("/grocerylists/{mealplan_id}", grocerylists.GetGrocerylistByMealplan(ctx, client)).Methods("GET")
 	router.HandleFunc("/grocerylists/{mealplan_id}/{grocery_id}", grocerylists.RemoveItemFromGroceryList(ctx, client)).Methods("PUT")
 	router.HandleFunc("/grocerylists/{mealplan_id}", grocerylists.DeleteGroceryList(ctx, client)).Methods("DELETE")
+
+	//users routes
+	router.HandleFunc("/users/register", users.RegisterUser(ctx, client)).Methods("POST")
 	log.Fatal(http.ListenAndServe(":5000", router))
+
+
 }

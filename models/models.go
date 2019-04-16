@@ -56,3 +56,10 @@ type Groceryitem struct {
 	Quantity float64 `json:"quantity" bson:"quantity"`
 	MeasureUnit string `json:"measureunit" bson:"measureunit"`
 }
+
+type User struct {
+	ID primitive.ObjectID `json:"_id" bson:"_id"`
+	Name string `json:"name" bson:"name"`
+	Email string `json:"email" bson:"email"`
+	Password []byte `json:"password" bson:"password"`
+}
