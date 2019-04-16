@@ -4,6 +4,7 @@ import (
   "fmt"
 	"encoding/json"
 	"context"
+  "time"
   // "strings"
   // "log"
   // "github.com/gorilla/mux"
@@ -13,7 +14,7 @@ import (
   "net/http"
 	"github.com/KatieSchmidt/meal_plan/models"
   "golang.org/x/crypto/bcrypt"
-  // "github.com/dgrijalva/jwt-go"
+  "github.com/dgrijalva/jwt-go"
 )
 
 // POST Registers user encrypts password
@@ -58,6 +59,51 @@ func RegisterUser(ctx context.Context, mongoClient *mongo.Client) func(http.Resp
 //POST logs in user/returns a JWT
 func LoginUser(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
   return func(response http.ResponseWriter, request *http.Request) {
+    request.ParseForm()
+    response.Header().Set("content-type", "application/x-www-form-urlencoded")
+    collection := mongoClient.Database("go_meals").Collection("users")
+    email := request.FormValue("email")
+    password := []byte(request.FormValue("password"))
 
+    filter := bson.D{{"email", email}}
+    var user models.User
+    err := collection.FindOne(ctx, filter).Decode(&user)
+    if err != nil {
+      var errMessage models.Errors
+      errMessage.User = "This user not in database"
+      json.NewEncoder(response).Encode(errMessage)
+    } else {
+      bcryptErr := bcrypt.CompareHashAndPassword(user.Password, password)
+      if bcryptErr != nil {
+        var errMessage models.Errors
+        errMessage.Password = "Password email error"
+        json.NewEncoder(response).Encode(errMessage)
+        response.WriteHeader(http.StatusUnauthorized)
+      } else {
+        expirationTime := time.Now().Add(3600 * time.Minute)
+        claims := models.Claims{
+        		Name: user.Name,
+            ID: user.ID,
+        		StandardClaims: jwt.StandardClaims{
+        			// In JWT, the expiry time is expressed as unix milliseconds
+        			ExpiresAt: expirationTime.Unix(),
+        		},
+        	}
+        token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+        var jwtKey = []byte("my_secret_key")
+        tokenString, err := token.SignedString(jwtKey)
+        if err != nil {
+          var errMessage models.Errors
+          errMessage.Password = "There was an error signing your token"
+          json.NewEncoder(response).Encode(errMessage)
+          response.WriteHeader(http.StatusUnauthorized)
+        } else {
+          var JOT models.JOT
+          JOT.Success = true
+          JOT.Token = "bearer " + tokenString
+          json.NewEncoder(response).Encode(JOT)
+        }
+      }
+    }
   }
 }

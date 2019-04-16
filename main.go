@@ -49,6 +49,8 @@ func main() {
 
 	//users routes
 	router.HandleFunc("/users/register", users.RegisterUser(ctx, client)).Methods("POST")
+	router.HandleFunc("/users/login", users.LoginUser(ctx, client)).Methods("POST")
+
 	log.Fatal(http.ListenAndServe(":5000", router))
 
 

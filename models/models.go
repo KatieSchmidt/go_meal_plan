@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/dgrijalva/jwt-go"
 )
 
 type Meal struct {
@@ -32,6 +33,7 @@ type ErrorMessage struct {
 type Errors struct{
 	Planname string `json:"planname,omitempty" bson:"planname,omitempty"`
 	User string `json:"user,omitempty" bson:"user,omitempty"`
+	Password string `json:"password,omitempty" bson:"password,omitempty"`
 	Mealplan string `json:"mealplan,omitempty" bson:"mealplan,omitempty"`
 	Meal string `json:"meal,omitempty" bson:"meal,omitempty"`
 	Ingredient string `json:"ingredient,omitempty" bson:"ingredient,omitempty"`
@@ -62,4 +64,15 @@ type User struct {
 	Name string `json:"name" bson:"name"`
 	Email string `json:"email" bson:"email"`
 	Password []byte `json:"password" bson:"password"`
+}
+
+type Claims struct {
+	ID primitive.ObjectID `json:"_id" bson:"_id"`
+	Name string `json:"name"`
+	jwt.StandardClaims
+}
+
+type JOT struct {
+	Success bool `json:"success", bson:"success"`
+	Token string `json:"token", bson:"token"`
 }
