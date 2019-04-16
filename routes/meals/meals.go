@@ -67,7 +67,7 @@ func CreateMeal(ctx context.Context, mongoClient *mongo.Client) func(http.Respon
 				var meal models.Meal
 
 				meal.ID = primitive.NewObjectID()
-				meal.User= claims.ID
+				meal.User = claims.ID
 				meal.Mealname = request.FormValue("mealname")
 				meal.DateAdded = time.Now()
 				filter := bson.D{{"user", meal.User}, {"mealname", meal.Mealname}}
@@ -89,6 +89,43 @@ func CreateMeal(ctx context.Context, mongoClient *mongo.Client) func(http.Respon
 					json.NewEncoder(response).Encode(response_message)
 				}
 			}
+    } else {
+        fmt.Println(err)
+    }
+  }
+}
+
+func GetMealsByUserId(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
+  return func(response http.ResponseWriter, request *http.Request) {
+		headerTkn := request.Header.Get("Authorization")
+		var newClaims models.Claims
+		token, err := jwt.ParseWithClaims(headerTkn, &newClaims, func(token *jwt.Token) (interface{}, error) {
+				return []byte("my_secret_key"), nil //will be hidden in production
+    })
+
+    if claims, ok := token.Claims.(*models.Claims); ok && token.Valid {
+			collection := mongoClient.Database("go_meals").Collection("meals")
+			filter := bson.D{{"user", claims.ID }}
+	  	cursor, err := collection.Find(ctx, filter)
+
+	  	if err != nil {
+	  		log.Fatal(err)
+	  	}
+
+	  	var meals []models.Meal
+	  	for cursor.Next(ctx) {
+	  		var meal models.Meal
+	  		cursor.Decode(&meal)
+	  		meals = append(meals, meal)
+	  	}
+
+	  	if len(meals) > 0 {
+	  		json.NewEncoder(response).Encode(meals)
+
+	  	} else {
+	  		response_message := models.ErrorMessage{"Error: No meals have been created by this user"}
+	  		json.NewEncoder(response).Encode(response_message)
+	  	}
     } else {
         fmt.Println(err)
     }
