@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
   "github.com/KatieSchmidt/meal_plan/models"
+	"github.com/dgrijalva/jwt-go"
 )
 
 func GetMeals(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
@@ -46,41 +47,53 @@ func GetMeals(ctx context.Context, mongoClient *mongo.Client) func(http.Response
 
 func CreateMeal(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
   return func(response http.ResponseWriter, request *http.Request) {
+		headerTkn := request.Header.Get("Authorization")
   	request.ParseForm()
   	response.Header().Set("content-type", "application/x-www-form-urlencoded")
 
-  	if len(request.FormValue("user")) == 0 || len(request.FormValue("mealname")) == 0{
-  		meal_error := models.ErrorMessage{"One of your form fields was empty"}
-  		json.NewEncoder(response).Encode(meal_error)
-  	} else {
-  		// look for a meal that has same username and meal name
-  			// if it does return an error if not, make the meal
-  		collection := mongoClient.Database("go_meals").Collection("meals")
-  		var meal models.Meal
+		var newClaims models.Claims
+		token, err := jwt.ParseWithClaims(headerTkn, &newClaims, func(token *jwt.Token) (interface{}, error) {
+				return []byte("my_secret_key"), nil //will be hidden in production
+    })
 
-	  	meal.ID = primitive.NewObjectID()
-  		meal.User, _ = primitive.ObjectIDFromHex(request.FormValue("user"))
-  		meal.Mealname = request.FormValue("mealname")
-  		meal.DateAdded = time.Now()
-  		filter := bson.D{{"user", meal.User}, {"mealname", meal.Mealname}}
-  		var resulting_meal models.Meal
-  		error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
-  		//if the meal wasnt found, create it else send an error message
-  		if error_msg != nil {
-  			//create models.Meal using the form data, save to a collection,
-  			_, err := collection.InsertOne(ctx, meal)
-  			if err != nil {
-  				response_message := models.ErrorMessage{"ERROR: there was an error creating your meal"}
-  				json.NewEncoder(response).Encode(response_message)
-  			} else {
-  				//if there isnt an error, meal was inserted, so return the meal
-  				json.NewEncoder(response).Encode(meal)
-  			}
-  		} else {
-  			response_message := models.ErrorMessage{"meal already exists"}
-  			json.NewEncoder(response).Encode(response_message)
-  		}
-  	}
+    if claims, ok := token.Claims.(*models.Claims); ok && token.Valid {
+			if len(request.FormValue("mealname")) == 0{
+				meal_error := models.ErrorMessage{"One of your form fields was empty"}
+				json.NewEncoder(response).Encode(meal_error)
+			} else {
+				// look for a meal that has same username and meal name
+					// if it does return an error if not, make the meal
+				collection := mongoClient.Database("go_meals").Collection("meals")
+				var meal models.Meal
+
+				meal.ID = primitive.NewObjectID()
+				meal.User= claims.ID
+				meal.Mealname = request.FormValue("mealname")
+				meal.DateAdded = time.Now()
+				filter := bson.D{{"user", meal.User}, {"mealname", meal.Mealname}}
+				var resulting_meal models.Meal
+				error_msg := collection.FindOne(ctx, filter).Decode(&resulting_meal)
+				//if the meal wasnt found, create it else send an error message
+				if error_msg != nil {
+					//create models.Meal using the form data, save to a collection,
+					_, err := collection.InsertOne(ctx, meal)
+					if err != nil {
+						response_message := models.ErrorMessage{"ERROR: there was an error creating your meal"}
+						json.NewEncoder(response).Encode(response_message)
+					} else {
+						//if there isnt an error, meal was inserted, so return the meal
+						json.NewEncoder(response).Encode(meal)
+					}
+				} else {
+					response_message := models.ErrorMessage{"meal already exists"}
+					json.NewEncoder(response).Encode(response_message)
+				}
+			}
+    } else {
+        fmt.Println(err)
+    }
+
+
   }
 }
 

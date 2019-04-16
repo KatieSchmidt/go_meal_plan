@@ -66,6 +66,11 @@ type User struct {
 	Password []byte `json:"password" bson:"password"`
 }
 
+type JOTUser struct {
+	ID primitive.ObjectID `json:"_id" bson:"_id"`
+	Name string `json:"name" bson:"name"`
+}
+
 type Claims struct {
 	ID primitive.ObjectID `json:"_id" bson:"_id"`
 	Name string `json:"name"`

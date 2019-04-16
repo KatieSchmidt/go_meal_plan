@@ -80,13 +80,12 @@ func LoginUser(ctx context.Context, mongoClient *mongo.Client) func(http.Respons
         json.NewEncoder(response).Encode(errMessage)
         response.WriteHeader(http.StatusUnauthorized)
       } else {
-        expirationTime := time.Now().Add(3600 * time.Minute)
+        expirationTime := time.Now().Add(1440 * time.Minute)
         claims := models.Claims{
         		Name: user.Name,
             ID: user.ID,
         		StandardClaims: jwt.StandardClaims{
-        			// In JWT, the expiry time is expressed as unix milliseconds
-        			ExpiresAt: expirationTime.Unix(),
+        			ExpiresAt: expirationTime.Unix(), //so its ms
         		},
         	}
         token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -100,7 +99,7 @@ func LoginUser(ctx context.Context, mongoClient *mongo.Client) func(http.Respons
         } else {
           var JOT models.JOT
           JOT.Success = true
-          JOT.Token = "bearer " + tokenString
+          JOT.Token = tokenString
           json.NewEncoder(response).Encode(JOT)
         }
       }
