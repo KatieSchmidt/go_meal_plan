@@ -41,6 +41,7 @@ type Errors struct{
 }
 
 type Mealplan struct {
+	ID primitive.ObjectID `json:"_id" bson:"_id"`
 	User primitive.ObjectID `json:"user" bson:"user"`
 	Planname string `json:"planname" bson:"planname"`
 	TotalCalories float64 `json:"totalcalories" bson:"totalcalories"`
@@ -64,11 +65,6 @@ type User struct {
 	Name string `json:"name" bson:"name"`
 	Email string `json:"email" bson:"email"`
 	Password []byte `json:"password" bson:"password"`
-}
-
-type JOTUser struct {
-	ID primitive.ObjectID `json:"_id" bson:"_id"`
-	Name string `json:"name" bson:"name"`
 }
 
 type Claims struct {

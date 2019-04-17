@@ -33,6 +33,7 @@ func  CreateMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.R
 	  			// if it does return an error if not, make the meal
 	  		collection := mongoClient.Database("go_meals").Collection("mealplans")
 	  		var mealplan models.Mealplan
+				mealplan.ID = primitive.NewObjectID()
 	  		mealplan.User = claims.ID
 	  		mealplan.Planname = request.FormValue("planname")
 	  		filter := bson.D{{"user", mealplan.User}, {"planname", mealplan.Planname}}
@@ -41,7 +42,6 @@ func  CreateMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.R
 	  		error_msg := collection.FindOne(ctx, filter).Decode(&temp)
 
 	  		if error_msg != nil {
-					fmt.Println(temp)
 					_, err := collection.InsertOne(ctx, mealplan)
 	  			if err != nil {
 
