@@ -26,7 +26,7 @@ func main() {
 	//meals routes
 	router.HandleFunc("/meals", meals.GetMeals(ctx, client)).Methods("GET")
 
-	router.HandleFunc("/meals/usermeals", meals.GetMealsByUserId(ctx, client)).Methods("GET")
+	router.HandleFunc("/meals/usermeals", meals.GetCurrentUsersMeals(ctx, client)).Methods("GET")
 
 	router.HandleFunc("/meals/{meal_id}", meals.GetMealById(ctx, client)).Methods("GET")
 
@@ -46,7 +46,7 @@ func main() {
 
 	router.HandleFunc("/mealplans/{mealplan_id}",mealplans.GetMealplanById(ctx, client)).Methods("GET")
 
-	router.HandleFunc("/mealplans/user/{user_id}",mealplans.GetMealplansByUserId(ctx, client)).Methods("GET")
+	router.HandleFunc("/mealplans/usermealplans",mealplans.GetCurrentUsersMealplans(ctx, client)).Methods("GET")
 
 	router.HandleFunc("/mealplans/{mealplan_id}/{meal_id}",mealplans.AddMealToMealplan(ctx, client)).Methods("PUT")
 

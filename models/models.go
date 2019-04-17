@@ -41,7 +41,7 @@ type Errors struct{
 }
 
 type Mealplan struct {
-	User string `json:"user" bson:"user"`
+	User primitive.ObjectID `json:"user" bson:"user"`
 	Planname string `json:"planname" bson:"planname"`
 	TotalCalories float64 `json:"totalcalories" bson:"totalcalories"`
 	Meals []Meal `json:"meals" bson:"meals"`

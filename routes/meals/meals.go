@@ -95,7 +95,7 @@ func CreateMeal(ctx context.Context, mongoClient *mongo.Client) func(http.Respon
   }
 }
 
-func GetMealsByUserId(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
+func GetCurrentUsersMeals(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
   return func(response http.ResponseWriter, request *http.Request) {
 		headerTkn := request.Header.Get("Authorization")
 		var newClaims models.Claims

@@ -11,56 +11,58 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
   "net/http"
 	"github.com/KatieSchmidt/meal_plan/models"
+	"github.com/dgrijalva/jwt-go"
 )
 
 func  CreateMealplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
+		headerToken := request.Header.Get("Authorization")
   	request.ParseForm()
   	response.Header().Set("content-type", "application/x-www-form-urlencoded")
-
-   	if len(request.FormValue("planname")) == 0 || len(request.FormValue("user")) < 24 {
-			var meal_errors models.Errors
-
-			if len(request.FormValue("planname")) == 0{
+		var newClaims models.Claims
+		token, _ := jwt.ParseWithClaims(headerToken, &newClaims, func(token *jwt.Token)(interface{}, error){
+			return []byte("my_secret_key"), nil
+		})
+		if claims, ok := token.Claims.(*models.Claims); ok && token.Valid {
+			if len(request.FormValue("planname")) == 0 {
+				var meal_errors models.Errors
 				meal_errors.Planname = "Planname required"
-			}
-			if len(request.FormValue("user")) < 24 {
-				meal_errors.User = "24 count required"
-			}
-  		json.NewEncoder(response).Encode(meal_errors)
-  	} else {
-  		// look for a mealplan that has same name and user
-  			// if it does return an error if not, make the meal
-  		collection := mongoClient.Database("go_meals").Collection("mealplans")
-  		var mealplan models.Mealplan
-  		mealplan.User = request.FormValue("user")
-  		mealplan.Planname = request.FormValue("planname")
-  		filter := bson.D{{"user", mealplan.User}, {"planname", mealplan.Planname}}
+	  		json.NewEncoder(response).Encode(meal_errors)
+	  	} else {
+	  		// look for a mealplan that has same name and user
+	  			// if it does return an error if not, make the meal
+	  		collection := mongoClient.Database("go_meals").Collection("mealplans")
+	  		var mealplan models.Mealplan
+	  		mealplan.User = claims.ID
+	  		mealplan.Planname = request.FormValue("planname")
+	  		filter := bson.D{{"user", mealplan.User}, {"planname", mealplan.Planname}}
 
-			var temp models.Mealplan
-  		error_msg := collection.FindOne(ctx, filter).Decode(&temp)
+				var temp models.Mealplan
+	  		error_msg := collection.FindOne(ctx, filter).Decode(&temp)
 
-  		if error_msg != nil {
-				fmt.Println(temp)
-				_, err := collection.InsertOne(ctx, mealplan)
-  			if err != nil {
+	  		if error_msg != nil {
+					fmt.Println(temp)
+					_, err := collection.InsertOne(ctx, mealplan)
+	  			if err != nil {
 
+						var response_message models.Errors
+						response_message.Mealplan = "Could not create mealplan"
+
+	  				json.NewEncoder(response).Encode(response_message)
+	  			} else {
+	  				//if there isnt an error, meal was inserted, so return the meal
+	  				json.NewEncoder(response).Encode(mealplan)
+	  			}
+	  		} else {
 					var response_message models.Errors
-					response_message.Mealplan = "Could not create mealplan"
-
-  				json.NewEncoder(response).Encode(response_message)
-  			} else {
-  				//if there isnt an error, meal was inserted, so return the meal
-  				json.NewEncoder(response).Encode(mealplan)
-  			}
-  		} else {
-				var response_message models.Errors
-				response_message.Mealplan = "A mealplan exists with this name already "
-  			json.NewEncoder(response).Encode(response_message)
-
-
-  		}
-  	}
+					response_message.Mealplan = "A mealplan exists with this name already "
+	  			json.NewEncoder(response).Encode(response_message)
+	  		}
+	  	}
+		} else {
+			response_message := models.ErrorMessage{"Mealplan couldnt be created"}
+			json.NewEncoder(response).Encode(response_message)
+		}
   }
 }
 
@@ -173,33 +175,42 @@ func AddMealToMealplan(ctx context.Context, mongoClient *mongo.Client) func(http
   }
 }
 
-func GetMealplansByUserId(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
+func GetCurrentUsersMealplans(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
-    params := mux.Vars(request)
+		headerTkn := request.Header.Get("Authorization")
+		var newClaims models.Claims
+		token, err := jwt.ParseWithClaims(headerTkn, &newClaims, func(token *jwt.Token) (interface{}, error) {
+				return []byte("my_secret_key"), nil //will be hidden in production
+    })
 
-    collection := mongoClient.Database("go_meals").Collection("mealplans")
-    filter := bson.D{{"user", params["user_id"]}}
+    if claims, ok := token.Claims.(*models.Claims); ok && token.Valid {
+			collection := mongoClient.Database("go_meals").Collection("mealplans")
 
-    cursor, err := collection.Find(ctx, filter)
+	    filter := bson.D{{"user", claims.ID}}
 
-    if err != nil {
-			var response_message models.Errors
-			response_message.Mealplan = "Mealplans not found for this user"
-			json.NewEncoder(response).Encode(response_message)
-    } else {
-      var mealplans []models.Mealplan
-      for cursor.Next(ctx){
-        var mealplan models.Mealplan
-        cursor.Decode(&mealplan)
-        mealplans = append(mealplans, mealplan)
-      }
-      if len(mealplans) > 0 {
-        json.NewEncoder(response).Encode(mealplans)
-      } else {
+	    cursor, err := collection.Find(ctx, filter)
+
+	    if err != nil {
 				var response_message models.Errors
-				response_message.Mealplan = "This user has no mealplans"
+				response_message.Mealplan = "Mealplans not found for this user"
 				json.NewEncoder(response).Encode(response_message)
-      }
+	    } else {
+	      var mealplans []models.Mealplan
+	      for cursor.Next(ctx){
+	        var mealplan models.Mealplan
+	        cursor.Decode(&mealplan)
+	        mealplans = append(mealplans, mealplan)
+	      }
+	      if len(mealplans) > 0 {
+	        json.NewEncoder(response).Encode(mealplans)
+	      } else {
+					var response_message models.Errors
+					response_message.Mealplan = "This user has no mealplans"
+					json.NewEncoder(response).Encode(response_message)
+	      }
+	    }
+    } else {
+      fmt.Println(err)
     }
   }
 }
