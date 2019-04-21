@@ -48,6 +48,14 @@ type Mealplan struct {
 	Meals []Meal `json:"meals" bson:"meals"`
 }
 
+type Weekplan struct {
+	ID primitive.ObjectID `json:"_id" bson:"_id"`
+	User primitive.ObjectID `json:"user" bson:"user"`
+	Planname string `json:"planname" bson:"planname"`
+	TotalCalories float64 `json:"totalcalories" bson:"totalcalories"`
+	Mealplans []Mealplan `json:"mealplans" bson:"mealplans"`
+}
+
 type Grocerylist struct {
 	AssociatedMealplanId primitive.ObjectID  `json:"associatedmealplanid" bson:"associatedmealplanid"`
 	Groceries []Groceryitem
