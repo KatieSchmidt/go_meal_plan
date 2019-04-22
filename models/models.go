@@ -35,6 +35,7 @@ type Errors struct{
 	User string `json:"user,omitempty" bson:"user,omitempty"`
 	Password string `json:"password,omitempty" bson:"password,omitempty"`
 	Mealplan string `json:"mealplan,omitempty" bson:"mealplan,omitempty"`
+	Weekplan string `json:"weekplan,omitempty" bson:"weekplan,omitempty"`
 	Meal string `json:"meal,omitempty" bson:"meal,omitempty"`
 	Ingredient string `json:"ingredient,omitempty" bson:"ingredient,omitempty"`
 	Grocerylist string `json:"grocerylist,omitempty" bson:"grocerylist,omitempty"`

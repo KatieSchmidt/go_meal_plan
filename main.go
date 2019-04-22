@@ -12,6 +12,7 @@ import (
 	"github.com/KatieSchmidt/meal_plan/routes/mealplans"
 	"github.com/KatieSchmidt/meal_plan/routes/grocerylists"
 	"github.com/KatieSchmidt/meal_plan/routes/users"
+	"github.com/KatieSchmidt/meal_plan/routes/weekplans"
 )
 
 var client *mongo.Client
@@ -69,6 +70,9 @@ func main() {
 	router.HandleFunc("/users/register", users.RegisterUser(ctx, client)).Methods("POST")
 
 	router.HandleFunc("/users/login", users.LoginUser(ctx, client)).Methods("POST")
+
+	//weekplan routes
+	router.HandleFunc("/weekplans", weekplans.CreateWeekplan(ctx, client)).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(":5000", router))
 
