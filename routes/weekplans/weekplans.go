@@ -4,7 +4,7 @@ import (
 	// "fmt"
 	"encoding/json"
 	"context"
-  // "log"
+  "log"
   "github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
   "go.mongodb.org/mongo-driver/bson/primitive"
@@ -70,31 +70,32 @@ func  CreateWeekplan(ctx context.Context, mongoClient *mongo.Client) func(http.R
 
 func GetWeekplans(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func (response http.ResponseWriter, request *http.Request) {
-    // response.Header().Set("content-type", "application/json")
-  	// collection := mongoClient.Database("go_meals").Collection("mealplans")
-  	// cursor, err := collection.Find(ctx, bson.M{})
-    //
-  	// if err != nil {
-  	// 	log.Fatal(err)
-  	// }
-    //
-  	// //create a list of meals of struc models.Meal
-  	// var mealplans []models.Mealplan
-  	// for cursor.Next(ctx) {
-  	// 	var mealplan models.Mealplan
-  	// 	cursor.Decode(&mealplan)
-  	// 	mealplans = append(mealplans, mealplan)
-  	// }
-    //
-  	// if len(mealplans) > 0 {
-  	// 	json.NewEncoder(response).Encode(mealplans)
-    //
-  	// } else {
-  	// 	//if there are no meals create a message Struct to send back
-		// 	var response_message models.Errors
-		// 	response_message.Mealplan = "No mealplans have been created"
-  	// 	json.NewEncoder(response).Encode(response_message)
-  	// }
+    response.Header().Set("content-type", "application/json")
+  	collection := mongoClient.Database("go_meals").Collection("weekplans")
+
+  	cursor, err := collection.Find(ctx, bson.M{})
+
+  	if err != nil {
+  		log.Fatal(err)
+  	}
+
+  	//create a list of meals of struc models.Meal
+  	var weekplans []models.Weekplan
+  	for cursor.Next(ctx) {
+  		var weekplan models.Weekplan
+  		cursor.Decode(&weekplan)
+  		weekplans = append(weekplans, weekplan)
+  	}
+
+  	if len(weekplans) > 0 {
+  		json.NewEncoder(response).Encode(weekplans)
+
+  	} else {
+  		//if there are no meals create a message Struct to send back
+			var response_message models.Errors
+			response_message.Weekplan = "No weekplans have been created"
+  		json.NewEncoder(response).Encode(response_message)
+  	}
   }
 }
 

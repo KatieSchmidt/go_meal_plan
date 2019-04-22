@@ -74,6 +74,8 @@ func main() {
 	//weekplan routes
 	router.HandleFunc("/weekplans", weekplans.CreateWeekplan(ctx, client)).Methods("POST")
 
+	router.HandleFunc("/weekplans", weekplans.GetWeekplans(ctx, client)).Methods("GET")
+
 	log.Fatal(http.ListenAndServe(":5000", router))
 
 }
