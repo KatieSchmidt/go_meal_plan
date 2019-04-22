@@ -101,21 +101,35 @@ func GetWeekplans(ctx context.Context, mongoClient *mongo.Client) func(http.Resp
 
 func GetWeekplanById(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
-    // params := mux.Vars(request)
-  	// collection := mongoClient.Database("go_meals").Collection("mealplans")
-  	// //make meal struc and get/make objectID, find by that id
-  	// var resulting_mealplan models.Mealplan
-  	// id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
-  	// filter := bson.D{{"_id", id }}
-  	// error_msg := collection.FindOne(ctx, filter).Decode(&resulting_mealplan)
-  	// //if the meal wasnt found send an error message
-  	// if error_msg != nil {
-  	// 	var response_message models.Errors
-		// 	response_message.Mealplan = "Mealplan with this id doesn't exist"
-  	// 	json.NewEncoder(response).Encode(response_message)
-  	// } else {
-  	// 	json.NewEncoder(response).Encode(resulting_mealplan)
-  	// }
+		headerToken := request.Header.Get("Authorization")
+  	request.ParseForm()
+  	response.Header().Set("content-type", "application/x-www-form-urlencoded")
+		var newClaims models.Claims
+		token, _ := jwt.ParseWithClaims(headerToken, &newClaims, func(token *jwt.Token)(interface{}, error){
+			return []byte("my_secret_key"), nil
+		})
+		if claims, ok := token.Claims.(*models.Claims); ok && token.Valid {
+			params := mux.Vars(request)
+			collection := mongoClient.Database("go_meals").Collection("weekplans")
+
+			var resulting_weekplan models.Weekplan
+			id, _ := primitive.ObjectIDFromHex(params["weekplan_id"])
+			filter := bson.D{{"user", claims.ID}, {"_id", id}}
+			error_msg := collection.FindOne(ctx, filter).Decode(&resulting_weekplan)
+
+			if error_msg != nil {
+				var response_message models.Errors
+				response_message.Weekplan = "Weekplan with this id doesn't exist for this user"
+				json.NewEncoder(response).Encode(response_message)
+			} else {
+				json.NewEncoder(response).Encode(resulting_weekplan)
+			}
+		} else {
+			var response_message models.Errors
+			response_message.Weekplan = "You arent logged in"
+  		json.NewEncoder(response).Encode(response_message)
+		}
+
   }
 }
 
