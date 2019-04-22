@@ -76,6 +76,8 @@ func main() {
 
 	router.HandleFunc("/weekplans", weekplans.GetWeekplans(ctx, client)).Methods("GET")
 
+	router.HandleFunc("/weekplans/userweekplans", weekplans.GetCurrentUsersWeekplans(ctx, client)).Methods("GET")
+
 	log.Fatal(http.ListenAndServe(":5000", router))
 
 }

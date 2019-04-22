@@ -1,7 +1,7 @@
 package weekplans
 
 import (
-	// "fmt"
+	"fmt"
 	"encoding/json"
 	"context"
   "log"
@@ -178,41 +178,41 @@ func AddMealplanToWeekplan(ctx context.Context, mongoClient *mongo.Client) func(
 
 func GetCurrentUsersWeekplans(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
-		// headerTkn := request.Header.Get("Authorization")
-		// var newClaims models.Claims
-		// token, err := jwt.ParseWithClaims(headerTkn, &newClaims, func(token *jwt.Token) (interface{}, error) {
-		// 		return []byte("my_secret_key"), nil //will be hidden in production
-    // })
-    //
-    // if claims, ok := token.Claims.(*models.Claims); ok && token.Valid {
-		// 	collection := mongoClient.Database("go_meals").Collection("mealplans")
-    //
-	  //   filter := bson.D{{"user", claims.ID}}
-    //
-	  //   cursor, err := collection.Find(ctx, filter)
-    //
-	  //   if err != nil {
-		// 		var response_message models.Errors
-		// 		response_message.Mealplan = "Mealplans not found for this user"
-		// 		json.NewEncoder(response).Encode(response_message)
-	  //   } else {
-	  //     var mealplans []models.Mealplan
-	  //     for cursor.Next(ctx){
-	  //       var mealplan models.Mealplan
-	  //       cursor.Decode(&mealplan)
-	  //       mealplans = append(mealplans, mealplan)
-	  //     }
-	  //     if len(mealplans) > 0 {
-	  //       json.NewEncoder(response).Encode(mealplans)
-	  //     } else {
-		// 			var response_message models.Errors
-		// 			response_message.Mealplan = "This user has no mealplans"
-		// 			json.NewEncoder(response).Encode(response_message)
-	  //     }
-	  //   }
-    // } else {
-    //   fmt.Println(err)
-    // }
+		headerTkn := request.Header.Get("Authorization")
+		var newClaims models.Claims
+		token, err := jwt.ParseWithClaims(headerTkn, &newClaims, func(token *jwt.Token) (interface{}, error) {
+				return []byte("my_secret_key"), nil //will be hidden in production
+    })
+
+    if claims, ok := token.Claims.(*models.Claims); ok && token.Valid {
+			collection := mongoClient.Database("go_meals").Collection("weekplans")
+
+	    filter := bson.D{{"user", claims.ID}}
+
+	    cursor, err := collection.Find(ctx, filter)
+
+	    if err != nil {
+				var response_message models.Errors
+				response_message.Weekplan = "Weekplans not found for this user"
+				json.NewEncoder(response).Encode(response_message)
+	    } else {
+	      var weekplans []models.Weekplan
+	      for cursor.Next(ctx){
+	        var weekplan models.Weekplan
+	        cursor.Decode(&weekplan)
+	        weekplans = append(weekplans, weekplan)
+	      }
+	      if len(weekplans) > 0 {
+	        json.NewEncoder(response).Encode(weekplans)
+	      } else {
+					var response_message models.Errors
+					response_message.Weekplan = "This user has no weekplans"
+					json.NewEncoder(response).Encode(response_message)
+	      }
+	    }
+    } else {
+      fmt.Println(err)
+    }
   }
 }
 
