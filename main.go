@@ -80,6 +80,8 @@ func main() {
 
 	router.HandleFunc("/weekplans/{weekplan_id}", weekplans.GetWeekplanById(ctx, client)).Methods("GET")
 
+	router.HandleFunc("/weekplans/{weekplan_id}", weekplans.DeleteWeekplan(ctx, client)).Methods("DELETE")
+
 	log.Fatal(http.ListenAndServe(":5000", router))
 
 }

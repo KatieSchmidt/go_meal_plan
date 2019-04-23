@@ -1,7 +1,7 @@
 package weekplans
 
 import (
-	"fmt"
+	// "fmt"
 	"encoding/json"
 	"context"
   "log"
@@ -194,7 +194,7 @@ func GetCurrentUsersWeekplans(ctx context.Context, mongoClient *mongo.Client) fu
 	return func(response http.ResponseWriter, request *http.Request) {
 		headerTkn := request.Header.Get("Authorization")
 		var newClaims models.Claims
-		token, err := jwt.ParseWithClaims(headerTkn, &newClaims, func(token *jwt.Token) (interface{}, error) {
+		token, _ := jwt.ParseWithClaims(headerTkn, &newClaims, func(token *jwt.Token) (interface{}, error) {
 				return []byte("my_secret_key"), nil //will be hidden in production
     })
 
@@ -225,29 +225,45 @@ func GetCurrentUsersWeekplans(ctx context.Context, mongoClient *mongo.Client) fu
 	      }
 	    }
     } else {
-      fmt.Println(err)
+      var response_message models.Errors
+			response_message.Weekplan = "there was an error"
+			json.NewEncoder(response).Encode(response_message)
     }
   }
 }
 
 func DeleteWeekplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
-    // params := mux.Vars(request)
-    // collection := mongoClient.Database("go_meals").Collection("mealplans")
-    // //make objectID, find by that id
-    // id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
-    // filter := bson.D{{"_id", id }}
-    // result, _ := collection.DeleteOne(ctx, filter)
-    //
-    // // DeleteOne always returns a result. error is always nil. so check to see if deleted count is equal to zero instead
-    // if result.DeletedCount == 0 {
-		// 	var response_message models.Errors
-		// 	response_message.Mealplan = "mealplan not found"
-		// 	json.NewEncoder(response).Encode(response_message)
-    // } else {
-    //   response_message := models.ResponseMessage{"mealplan deleted"}
-    //   json.NewEncoder(response).Encode(response_message)
-    // }
+		headerTkn := request.Header.Get("Authorization")
+		var newClaims models.Claims
+
+		token, _ := jwt.ParseWithClaims(headerTkn, &newClaims, func(token *jwt.Token) (interface{}, error) {
+				return []byte("my_secret_key"), nil //will be hidden in production
+    })
+
+		if claims, ok := token.Claims.(*models.Claims); ok && token.Valid {
+			params := mux.Vars(request)
+	    collection := mongoClient.Database("go_meals").Collection("weekplans")
+			var user_id = claims.ID
+	    id, _ := primitive.ObjectIDFromHex(params["weekplan_id"])
+	    filter := bson.D{{"_id", id }, {"user", user_id}}
+	    result, _ := collection.DeleteOne(ctx, filter)
+
+	    // DeleteOne always returns a result. error is always nil. so check to see if deleted count is equal to zero instead
+	    if result.DeletedCount == 0 {
+				var response_message models.Errors
+				response_message.Mealplan = "weekplan not found"
+				json.NewEncoder(response).Encode(response_message)
+	    } else {
+	      response_message := models.ResponseMessage{"weekplan deleted"}
+	      json.NewEncoder(response).Encode(response_message)
+	    }
+
+		} else {
+			var response_message models.Errors
+			response_message.Weekplan = "there was an error"
+			json.NewEncoder(response).Encode(response_message)
+		}
   }
 }
 

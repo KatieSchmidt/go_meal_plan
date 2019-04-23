@@ -39,6 +39,7 @@ type Errors struct{
 	Meal string `json:"meal,omitempty" bson:"meal,omitempty"`
 	Ingredient string `json:"ingredient,omitempty" bson:"ingredient,omitempty"`
 	Grocerylist string `json:"grocerylist,omitempty" bson:"grocerylist,omitempty"`
+	Authorization string `json:"authorization,omitempty" bson:"authorization,omitempty"`
 }
 
 type Mealplan struct {
