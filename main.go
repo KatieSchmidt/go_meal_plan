@@ -82,6 +82,8 @@ func main() {
 
 	router.HandleFunc("/weekplans/{weekplan_id}", weekplans.DeleteWeekplan(ctx, client)).Methods("DELETE")
 
+	router.HandleFunc("/weekplans/{weekplan_id}/{mealplan_id}", weekplans.AddMealplanToWeekplan(ctx, client)).Methods("POST")
+
 	log.Fatal(http.ListenAndServe(":5000", router))
 
 }

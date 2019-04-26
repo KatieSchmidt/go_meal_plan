@@ -14,6 +14,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+//done
 func  CreateWeekplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
 		headerToken := request.Header.Get("Authorization")
@@ -66,8 +67,7 @@ func  CreateWeekplan(ctx context.Context, mongoClient *mongo.Client) func(http.R
   }
 }
 
-
-
+//done
 func GetWeekplans(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func (response http.ResponseWriter, request *http.Request) {
     response.Header().Set("content-type", "application/json")
@@ -99,6 +99,7 @@ func GetWeekplans(ctx context.Context, mongoClient *mongo.Client) func(http.Resp
   }
 }
 
+//done
 func GetWeekplanById(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
 		headerToken := request.Header.Get("Authorization")
@@ -133,63 +134,7 @@ func GetWeekplanById(ctx context.Context, mongoClient *mongo.Client) func(http.R
   }
 }
 
-func AddMealplanToWeekplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
-	return func(response http.ResponseWriter, request *http.Request) {
-    request.ParseForm()
-  	response.Header().Set("content-type", "application/x-www-form-urlencoded")
-
-  	params := mux.Vars(request)
-
-  	meal_id, _ := primitive.ObjectIDFromHex(params["meal_id"])
-    plan_id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
-
-  	mealfilter := bson.D{{"_id", meal_id }}
-    mealplanfilter := bson.D{{"_id", plan_id }}
-
-  	mealcollection := mongoClient.Database("go_meals").Collection("meals")
-    mealplancollection := mongoClient.Database("go_meals").Collection("mealplans")
-
-  	var resulting_meal models.Meal
-    var resulting_mealplan models.Mealplan
-
-  	meal_error_msg := mealcollection.FindOne(ctx, mealfilter).Decode(&resulting_meal)
-  	if meal_error_msg != nil {
-			var response_message models.Errors
-			response_message.Meal = "Meal not found"
-  		json.NewEncoder(response).Encode(response_message)
-  	} else {
-      mealplan_error_msg := mealplancollection.FindOne(ctx, mealplanfilter).Decode(&resulting_mealplan)
-
-  		if mealplan_error_msg != nil  {
-				var response_message models.Errors
-				response_message.Mealplan = "You cant add a meal to a non-existant mealplan"
-	  		json.NewEncoder(response).Encode(response_message)
-  		} else {
-  			resulting_mealplan.Meals = append(resulting_mealplan.Meals, resulting_meal)
-        resulting_mealplan.TotalCalories = resulting_mealplan.TotalCalories + resulting_meal.TotalCalories
-
-        var updated_mealplan models.Mealplan
-        insertion_error := mealplancollection.FindOneAndReplace(ctx, mealplanfilter, resulting_mealplan).Decode(&updated_mealplan)
-
-        if insertion_error != nil {
-					var response_message models.Errors
-					response_message.Mealplan = "Unable to add meal to mealplan"
-		  		json.NewEncoder(response).Encode(response_message)
-        } else {
-          err := mealplancollection.FindOne(ctx, mealplanfilter).Decode(&updated_mealplan)
-          if err != nil {
-						var response_message models.Errors
-						response_message.Mealplan = "Couldnt find updated mealplan"
-			  		json.NewEncoder(response).Encode(response_message)
-          } else {
-            json.NewEncoder(response).Encode(updated_mealplan)
-          }
-        }
-  		}
-  	}
-  }
-}
-
+//done
 func GetCurrentUsersWeekplans(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
 		headerTkn := request.Header.Get("Authorization")
@@ -232,6 +177,7 @@ func GetCurrentUsersWeekplans(ctx context.Context, mongoClient *mongo.Client) fu
   }
 }
 
+//done
 func DeleteWeekplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
 		headerTkn := request.Header.Get("Authorization")
@@ -264,6 +210,76 @@ func DeleteWeekplan(ctx context.Context, mongoClient *mongo.Client) func(http.Re
 			response_message.Weekplan = "there was an error"
 			json.NewEncoder(response).Encode(response_message)
 		}
+  }
+}
+
+func AddMealplanToWeekplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
+	return func(response http.ResponseWriter, request *http.Request) {
+		request.ParseForm()
+		// response.Header().Set("content-type", "application/x-www-form-urlencoded")
+		headerTkn := request.Header.Get("Authorization")
+		var newClaims models.Claims
+		token, _ := jwt.ParseWithClaims(headerTkn, &newClaims, func(token *jwt.Token) (interface{}, error) {
+				return []byte("my_secret_key"), nil //will be hidden in production
+    })
+
+		if claims, ok := token.Claims.(*models.Claims); ok && token.Valid {
+			//////////
+	  	params := mux.Vars(request)
+
+	  	mealplan_id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
+	    weekplan_id, _ := primitive.ObjectIDFromHex(params["weekplan_id"])
+
+	  	mealplanfilter := bson.D{{"user", claims.ID},{"_id", mealplan_id }}
+	    weekplanfilter := bson.D{{"user", claims.ID},{"_id", weekplan_id }}
+
+	  	mealplancollection := mongoClient.Database("go_meals").Collection("mealplans")
+	    weekplancollection := mongoClient.Database("go_meals").Collection("weekplans")
+
+	  	var resulting_mealplan models.Mealplan
+	    var resulting_weekplan models.Weekplan
+
+	  	mealplan_error_msg := mealplancollection.FindOne(ctx, mealplanfilter).Decode(&resulting_mealplan)
+	  	if mealplan_error_msg != nil {
+				var response_message models.Errors
+				response_message.Mealplan = "Mealplan not found"
+	  		json.NewEncoder(response).Encode(response_message)
+	  	} else {
+	      weekplan_error_msg := weekplancollection.FindOne(ctx, weekplanfilter).Decode(&resulting_weekplan)
+
+	  		if weekplan_error_msg != nil  {
+					var response_message models.Errors
+					response_message.Mealplan = "You cant add a mealplan to a non-existant weekplan"
+		  		json.NewEncoder(response).Encode(response_message)
+	  		} else {
+	  			resulting_weekplan.Mealplans = append(resulting_weekplan.Mealplans, resulting_mealplan)
+	        resulting_weekplan.TotalCalories = resulting_weekplan.TotalCalories + resulting_mealplan.TotalCalories
+
+	        var updated_weekplan models.Weekplan
+	        insertion_error := weekplancollection.FindOneAndReplace(ctx, weekplanfilter, resulting_weekplan).Decode(&updated_weekplan)
+
+	        if insertion_error != nil {
+						var response_message models.Errors
+						response_message.Weekplan = "Unable to add mealplan to weekplan"
+			  		json.NewEncoder(response).Encode(response_message)
+	        } else {
+	          err := weekplancollection.FindOne(ctx, weekplanfilter).Decode(&updated_weekplan)
+	          if err != nil {
+							var response_message models.Errors
+							response_message.Weekplan = "Couldnt find updated weekplan"
+				  		json.NewEncoder(response).Encode(response_message)
+	          } else {
+	            json.NewEncoder(response).Encode(updated_weekplan)
+	          }
+	        }
+	  		}
+	  	}
+		} else {
+			var response_message models.Errors
+			response_message.Weekplan = "there was an error"
+			json.NewEncoder(response).Encode(response_message)
+		}
+
   }
 }
 
