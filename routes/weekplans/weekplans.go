@@ -279,71 +279,88 @@ func AddMealplanToWeekplan(ctx context.Context, mongoClient *mongo.Client) func(
 			response_message.Weekplan = "there was an error"
 			json.NewEncoder(response).Encode(response_message)
 		}
-
   }
 }
 
 func DeleteMealplanFromWeekplan(ctx context.Context, mongoClient *mongo.Client) func(http.ResponseWriter, *http.Request) {
 	return func(response http.ResponseWriter, request *http.Request) {
 
-    params := mux.Vars(request)
+		request.ParseForm()
+		// response.Header().Set("content-type", "application/x-www-form-urlencoded")
+		headerTkn := request.Header.Get("Authorization")
+		var newClaims models.Claims
+		token, _ := jwt.ParseWithClaims(headerTkn, &newClaims, func(token *jwt.Token) (interface{}, error) {
+				return []byte("my_secret_key"), nil //will be hidden in production
+		})
 
-  	mealplan_collection := mongoClient.Database("go_meals").Collection("mealplans")
-    meal_collection := mongoClient.Database("go_meals").Collection("meals")
+		if claims, ok := token.Claims.(*models.Claims); ok && token.Valid {
 
-    mealplan_id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
-    meal_id, _ := primitive.ObjectIDFromHex(params["meal_id"])
+			params := mux.Vars(request)
 
-    mealplan_filter := bson.D{{"_id", mealplan_id}}
-    meal_filter := bson.D{{"_id", meal_id}}
+			mealplan_id, _ := primitive.ObjectIDFromHex(params["mealplan_id"])
+			weekplan_id, _ := primitive.ObjectIDFromHex(params["weekplan_id"])
 
-    var original_mealplan models.Mealplan
-    err := mealplan_collection.FindOne(ctx, mealplan_filter).Decode(&original_mealplan)
-    if err != nil {
-			var response_message models.Errors
-			response_message.Mealplan = "Mealplan Not Found"
-			json.NewEncoder(response).Encode(response_message)
-    } else {
-      var meal models.Meal
-      err := meal_collection.FindOne(ctx, meal_filter).Decode(&meal)
+			mealplanfilter := bson.D{{"user", claims.ID},{"_id", mealplan_id }}
+			weekplanfilter := bson.D{{"user", claims.ID},{"_id", weekplan_id }}
 
-      if err != nil {
+			mealplancollection := mongoClient.Database("go_meals").Collection("mealplans")
+			weekplancollection := mongoClient.Database("go_meals").Collection("weekplans")
+
+			var resulting_mealplan models.Mealplan
+			var resulting_weekplan models.Weekplan
+
+			mealplan_error_msg := mealplancollection.FindOne(ctx, mealplanfilter).Decode(&resulting_mealplan)
+			if mealplan_error_msg != nil {
 				var response_message models.Errors
-				response_message.Mealplan = "Meal Not Found"
+				response_message.Mealplan = "Mealplan not found"
 				json.NewEncoder(response).Encode(response_message)
-      } else {
-        //even if there is more than one occurance of the meal, only delete one of them from the plan at a time
-        index := 0
-        running := true
-        var calories_to_remove float64 = 0
-        for i := 0; i < len(original_mealplan.Meals) && running == true; i ++ {
-          if original_mealplan.Meals[i].ID == meal.ID {
-            index = i
-            calories_to_remove = original_mealplan.Meals[i].TotalCalories
-            running = false
-          }
-      }
-      if running == true && calories_to_remove == 0{
-				var response_message models.Errors
-				response_message.Mealplan = "Meal Not Found in mealplan"
-				json.NewEncoder(response).Encode(response_message)
-      } else {
-        new_meals_slice := append(original_mealplan.Meals[:index], original_mealplan.Meals[index + 1:]...)
+			} else {
+				weekplan_error_msg := weekplancollection.FindOne(ctx, weekplanfilter).Decode(&resulting_weekplan)
 
-        original_mealplan.Meals = new_meals_slice
-        original_mealplan.TotalCalories = original_mealplan.TotalCalories - calories_to_remove
-
-        var updated_mealplan models.Mealplan
-        error_msg := mealplan_collection.FindOneAndReplace(ctx, mealplan_filter, original_mealplan).Decode(&updated_mealplan)
-        if error_msg != nil  {
+				if weekplan_error_msg != nil  {
 					var response_message models.Errors
-					response_message.Mealplan = "Unable to remove meal from mealplan"
+					response_message.Mealplan = "You cant add a mealplan to a non-existant weekplan"
 					json.NewEncoder(response).Encode(response_message)
-        } else {
-          json.NewEncoder(response).Encode(original_mealplan)
-        }
-      }
-      }
-    }
+				} else {
+					inserted := false
+					for index, mealplan := range resulting_weekplan.Mealplans {
+						if mealplan.ID == resulting_mealplan.ID {
+							new_mealplan_slice := append(resulting_weekplan.Mealplans[:index], resulting_weekplan.Mealplans[index + 1:]...)
+							resulting_weekplan.Mealplans = new_mealplan_slice
+							resulting_weekplan.TotalCalories = resulting_weekplan.TotalCalories - resulting_mealplan.TotalCalories
+							inserted = true
+							break
+						}
+					}
+					if inserted != true {
+						var error_msg models.Errors
+						error_msg.Weekplan = "this mealplan wasn't in the weekplan"
+						json.NewEncoder(response).Encode(error_msg)
+					} else {
+						var updated_weekplan models.Weekplan
+						insertion_error := weekplancollection.FindOneAndReplace(ctx, weekplanfilter, resulting_weekplan).Decode(&updated_weekplan)
+
+						if insertion_error != nil {
+							var response_message models.Errors
+							response_message.Weekplan = "Unable to remove mealplan from weekplan"
+							json.NewEncoder(response).Encode(response_message)
+						} else {
+							err := weekplancollection.FindOne(ctx, weekplanfilter).Decode(&updated_weekplan)
+							if err != nil {
+								var response_message models.Errors
+								response_message.Weekplan = "Couldnt find updated weekplan"
+								json.NewEncoder(response).Encode(response_message)
+							} else {
+								json.NewEncoder(response).Encode(updated_weekplan)
+							}
+						}
+					}
+				}
+			}
+		} else {
+			var response_message models.Errors
+			response_message.Weekplan = "there was an error"
+			json.NewEncoder(response).Encode(response_message)
+		}
   }
 }
