@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/KatieSchmidt/meal_plan/routes/grocerylists"
+	"github.com/KatieSchmidt/meal_plan/routes/mealplans"
+	"github.com/KatieSchmidt/meal_plan/routes/meals"
+	"github.com/KatieSchmidt/meal_plan/routes/users"
+	"github.com/KatieSchmidt/meal_plan/routes/weekplans"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"github.com/KatieSchmidt/meal_plan/routes/meals"
-	"github.com/KatieSchmidt/meal_plan/routes/mealplans"
-	"github.com/KatieSchmidt/meal_plan/routes/grocerylists"
-	"github.com/KatieSchmidt/meal_plan/routes/users"
-	"github.com/KatieSchmidt/meal_plan/routes/weekplans"
 )
 
+// test
 var client *mongo.Client
 
 func main() {
@@ -39,21 +41,20 @@ func main() {
 
 	router.HandleFunc("/meals/{meal_id}", meals.DeleteMealById(ctx, client)).Methods("DELETE")
 
-
 	//mealplan routes
 	router.HandleFunc("/mealplans", mealplans.CreateMealplan(ctx, client)).Methods("POST")
 
-	router.HandleFunc("/mealplans",mealplans.GetMealplans(ctx, client)).Methods("GET")
+	router.HandleFunc("/mealplans", mealplans.GetMealplans(ctx, client)).Methods("GET")
 
-	router.HandleFunc("/mealplans/{mealplan_id}",mealplans.GetMealplanById(ctx, client)).Methods("GET")
+	router.HandleFunc("/mealplans/{mealplan_id}", mealplans.GetMealplanById(ctx, client)).Methods("GET")
 
-	router.HandleFunc("/mealplans/usermealplans",mealplans.GetCurrentUsersMealplans(ctx, client)).Methods("GET")
+	router.HandleFunc("/mealplans/usermealplans", mealplans.GetCurrentUsersMealplans(ctx, client)).Methods("GET")
 
-	router.HandleFunc("/mealplans/{mealplan_id}/{meal_id}",mealplans.AddMealToMealplan(ctx, client)).Methods("PUT")
+	router.HandleFunc("/mealplans/{mealplan_id}/{meal_id}", mealplans.AddMealToMealplan(ctx, client)).Methods("PUT")
 
-	router.HandleFunc("/mealplans/{mealplan_id}",mealplans.DeleteMealplan(ctx, client)).Methods("DELETE")
+	router.HandleFunc("/mealplans/{mealplan_id}", mealplans.DeleteMealplan(ctx, client)).Methods("DELETE")
 
-	router.HandleFunc("/mealplans/{mealplan_id}/remove/{meal_id}",mealplans.DeleteMealFromMealplan(ctx, client)).Methods("PUT")
+	router.HandleFunc("/mealplans/{mealplan_id}/remove/{meal_id}", mealplans.DeleteMealFromMealplan(ctx, client)).Methods("PUT")
 
 	//grocerylist routes
 	router.HandleFunc("/grocerylists/{mealplan_id}", grocerylists.CreateGrocerylist(ctx, client)).Methods("POST")
